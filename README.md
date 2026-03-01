@@ -42,25 +42,53 @@ Sistema completo para administradoras de condomínios, desenvolvido com React, T
 - Node.js 18+ e npm
 - Conta no [Supabase](https://supabase.com)
 
-## Configuração
+## Configuração e Instalação
 
-```sh
-# 1. Clone o repositório
-git clone <URL_DO_REPOSITORIO>
-cd sige-condo
+Siga os passos abaixo para preparar o ambiente e rodar o sistema localmente:
 
-# 2. Copie e configure as variáveis de ambiente
-cp .env.example .env
-# Edite o .env com suas credenciais do Supabase
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/Wgomes156/sige-condo.git
+   cd sige-condo
+   ```
 
-# 3. Instale as dependências
-npm install
+2. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
 
-# 4. Inicie o servidor de desenvolvimento
-npm run dev
+3. **Configure as variáveis de ambiente:**
+   Copie o arquivo `.env.example` para `.env` e preencha com as credenciais do seu projeto Supabase.
+   ```bash
+   cp .env.example .env
+   ```
+
+4. **Inicie o servidor de desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
+   O sistema estará disponível em `http://localhost:8080`.
+
+## Controle de Versão (Git)
+
+Para manter o seu sistema atualizado no GitHub, siga este fluxo de trabalho no terminal:
+
+### 1. Salvar alterações localmente (Commit)
+Sempre que fizer uma mudança importante, execute:
+```bash
+# Adiciona todos os arquivos modificados para o "palco" (stage)
+git add .
+
+# Salva as mudanças com uma mensagem descritiva
+git commit -m "Descrição das melhorias realizadas"
 ```
 
-O browser abrirá automaticamente em `http://localhost:8080`.
+### 2. Enviar para o GitHub (Push)
+Para enviar os seus commits locais para o servidor remoto:
+```bash
+# Envia as alterações da branch principal (main) para o GitHub
+git push origin main
+```
 
 ## Scripts disponíveis
 
@@ -75,12 +103,11 @@ O browser abrirá automaticamente em `http://localhost:8080`.
 
 Consulte o arquivo [`.env.example`](.env.example) para ver as variáveis necessárias.
 
-## Banco de dados
+## Estrutura do Banco de Dados
 
-As migrations do Supabase estão em `supabase/migrations/`. Para visualizar o banco localmente use:
+As migrations do Supabase estão em `supabase/migrations/`. Para visualizar os dados localmente:
 
-```sh
+```bash
 npx prisma studio
 ```
-
-Ou instale a extensão **SQLite Viewer** no VS Code.
+Ou utilize a extensão **SQLite Viewer** no VS Code para inspecionar arquivos `.db` se houver.
