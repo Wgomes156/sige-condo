@@ -1,0 +1,10 @@
+project_id = "vteuzzvwzunkflcfijdn"
+
+[functions.gerar-boletos-recorrentes]
+verify_jwt = true
+
+[functions.enviar-email-cobranca]
+verify_jwt = true
+
+[functions.assistente-atendimento]
+verify_jwt = false

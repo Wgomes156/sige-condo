@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 210 50% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 50% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 50% 15%;
+
+    /* Azul escuro - Manage Condo */
+    --primary: 210 60% 25%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Laranja - Manage Condo */
+    --secondary: 35 92% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 210 25% 45%;
+
+    /* Accent usa o laranja */
+    --accent: 35 92% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
+    --ring: 210 60% 25%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar com azul escuro */
+    --sidebar-background: 210 60% 20%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 35 92% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 50% 30%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 210 40% 35%;
+    --sidebar-ring: 35 92% 55%;
+
+    /* Cores adicionais da marca */
+    --psc-orange: 35 92% 55%;
+    --psc-navy: 210 60% 25%;
+    --psc-navy-dark: 210 60% 20%;
+    --psc-navy-light: 210 50% 35%;
+  }
+
+  .dark {
+    --background: 210 60% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 210 55% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 210 55% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 35 92% 55%;
+    --primary-foreground: 210 60% 15%;
+
+    --secondary: 210 50% 25%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 210 40% 18%;
+    --muted-foreground: 210 20% 65%;
+
+    --accent: 35 92% 55%;
+    --accent-foreground: 210 60% 15%;
+
+    --destructive: 0 62.8% 45%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 40% 20%;
+    --input: 210 40% 20%;
+    --ring: 35 92% 55%;
+
+    --sidebar-background: 210 60% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 35 92% 55%;
+    --sidebar-primary-foreground: 210 60% 15%;
+    --sidebar-accent: 210 50% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 210 40% 18%;
+    --sidebar-ring: 35 92% 55%;
+
+    --psc-orange: 35 92% 55%;
+    --psc-navy: 210 60% 25%;
+    --psc-navy-dark: 210 60% 15%;
+    --psc-navy-light: 210 50% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

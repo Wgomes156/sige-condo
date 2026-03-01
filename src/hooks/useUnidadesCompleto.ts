@@ -1,0 +1,1022 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+// Types for the complete unit module
+export type TipoUnidade = 'apartamento' | 'casa' | 'loja' | 'escritorio' | 'sala';
+export type TipoLocalizacao = 'bloco' | 'torre' | 'rua';
+export type SituacaoUnidade = 'ativa' | 'inativa' | 'em_reforma' | 'desocupada';
+export type TipoOcupacao = 'moradia' | 'aluguel' | 'aluguel_temporada' | 'desocupado';
+export type ResponsavelFinanceiro = 'proprietario' | 'inquilino';
+export type StatusFinanceiroUnidade = 'em_dia' | 'inadimplente' | 'acordo';
+export type TipoVeiculo = 'moto' | 'carro' | 'suv' | 'caminhonete' | 'bicicleta' | 'outro';
+export type PorteAnimal = 'pequeno' | 'medio' | 'grande';
+export type TipoAcesso = 'tag' | 'chip' | 'controle_remoto' | 'biometria';
+export type ProprietarioVeiculo = 'proprietario' | 'inquilino' | 'morador';
+export type TipoVinculo = 'proprietario' | 'inquilino';
+
+export interface UnidadeCompleta {
+  id: string;
+  condominio_id: string;
+  codigo: string;
+  bloco: string | null;
+  tipo_unidade: TipoUnidade;
+  tipo_localizacao: TipoLocalizacao | null;
+  nome_localizacao: string | null;
+  andar: number | null;
+  numero_unidade: string | null;
+  endereco: string | null;
+  numero_endereco: string | null;
+  complemento: string | null;
+  situacao: SituacaoUnidade;
+  tipo_ocupacao: TipoOcupacao;
+  responsavel_financeiro: ResponsavelFinanceiro;
+  status_financeiro: StatusFinanceiroUnidade;
+  quantidade_moradores: number;
+  observacoes_internas: string | null;
+  observacoes_gerais: string | null;
+  morador_nome: string | null;
+  morador_email: string | null;
+  morador_telefone: string | null;
+  proprietario_nome: string | null;
+  proprietario_cpf: string | null;
+  proprietario_telefone: string | null;
+  proprietario_email: string | null;
+  inquilino_nome: string | null;
+  inquilino_cpf: string | null;
+  inquilino_telefone: string | null;
+  inquilino_email: string | null;
+  ativa: boolean;
+  created_at: string;
+  updated_at: string;
+  alterado_por: string | null;
+  condominios?: { nome: string };
+}
+
+export interface ProprietarioUnidade {
+  id: string;
+  unidade_id: string;
+  nome_completo: string;
+  cpf: string | null;
+  telefone: string | null;
+  email: string | null;
+  possui_procuracao: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InquilinoUnidade {
+  id: string;
+  unidade_id: string;
+  nome_completo: string;
+  cpf: string | null;
+  telefone: string | null;
+  email: string | null;
+  data_inicio_contrato: string | null;
+  data_termino_contrato: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MoradorUnidade {
+  id: string;
+  unidade_id: string;
+  tipo_vinculo: TipoVinculo;
+  nome_completo: string;
+  cpf: string | null;
+  telefone: string | null;
+  email: string | null;
+  parentesco: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VeiculoUnidade {
+  id: string;
+  unidade_id: string;
+  proprietario_veiculo: ProprietarioVeiculo;
+  nome_proprietario: string | null;
+  tipo: TipoVeiculo;
+  marca: string | null;
+  modelo: string | null;
+  cor: string | null;
+  placa: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentoUnidade {
+  id: string;
+  unidade_id: string;
+  tipo_documento: string;
+  nome_arquivo: string;
+  storage_path: string;
+  tamanho: number | null;
+  tipo_arquivo: string | null;
+  criado_por: string | null;
+  created_at: string;
+}
+
+export interface AcessoUnidade {
+  id: string;
+  unidade_id: string;
+  tipo_acesso: TipoAcesso;
+  codigo_identificacao: string | null;
+  descricao: string | null;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VisitanteAutorizado {
+  id: string;
+  unidade_id: string;
+  nome_completo: string;
+  cpf: string | null;
+  telefone: string | null;
+  parentesco: string | null;
+  observacoes: string | null;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnimalUnidade {
+  id: string;
+  unidade_id: string;
+  nome: string;
+  especie: string;
+  raca: string | null;
+  porte: PorteAnimal;
+  observacoes: string | null;
+  foto_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VagaGaragem {
+  id: string;
+  unidade_id: string;
+  numero_vaga: string;
+  tipo: string;
+  localizacao: string | null;
+  coberta: boolean;
+  observacoes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OcorrenciaUnidade {
+  id: string;
+  unidade_id: string;
+  tipo_ocorrencia: string;
+  descricao: string;
+  data_ocorrencia: string;
+  resolvida: boolean;
+  resolucao: string | null;
+  registrado_por: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Input types for mutations
+export interface UnidadeCompletaInput {
+  condominio_id: string;
+  codigo?: string; // Optional - auto-generated by database sequence when not provided
+  bloco?: string;
+  tipo_unidade?: TipoUnidade;
+  tipo_localizacao?: TipoLocalizacao;
+  nome_localizacao?: string;
+  andar?: number;
+  numero_unidade?: string;
+  endereco?: string;
+  numero_endereco?: string;
+  complemento?: string;
+  situacao?: SituacaoUnidade;
+  tipo_ocupacao?: TipoOcupacao;
+  responsavel_financeiro?: ResponsavelFinanceiro;
+  status_financeiro?: StatusFinanceiroUnidade;
+  quantidade_moradores?: number;
+  observacoes_internas?: string;
+  observacoes_gerais?: string;
+  morador_nome?: string;
+  morador_email?: string;
+  morador_telefone?: string;
+  ativa?: boolean;
+}
+
+// ==================== UNIDADES ====================
+export function useUnidadesCompletas(condominioId?: string) {
+  return useQuery({
+    queryKey: ["unidades-completas", condominioId],
+    queryFn: async () => {
+      let query = supabase
+        .from("unidades")
+        .select(`
+          *,
+          condominios(nome),
+          proprietarios_unidade(nome_completo),
+          inquilinos_unidade(nome_completo)
+        `)
+        .order("numero_unidade", { ascending: true });
+
+      if (condominioId) {
+        query = query.eq("condominio_id", condominioId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as (UnidadeCompleta & { proprietarios_unidade?: { nome_completo: string } | null })[];
+    },
+  });
+}
+
+export function useUnidadeById(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["unidade", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return null;
+      
+      const { data, error } = await supabase
+        .from("unidades")
+        .select(`
+          *,
+          condominios(nome)
+        `)
+        .eq("id", unidadeId)
+        .single();
+
+      if (error) throw error;
+      return data as UnidadeCompleta;
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useCreateUnidadeCompleta() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (unidade: UnidadeCompletaInput) => {
+      const { data, error } = await supabase
+        .from("unidades")
+        .insert(unidade as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["unidades-completas"] });
+      queryClient.invalidateQueries({ queryKey: ["unidades"] });
+      toast.success("Unidade cadastrada com sucesso");
+    },
+    onError: (error) => {
+      console.error("Erro ao criar unidade:", error);
+      toast.error("Erro ao cadastrar unidade");
+    },
+  });
+}
+
+export function useUpdateUnidadeCompleta() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<UnidadeCompletaInput> & { id: string }) => {
+      const { data: result, error } = await supabase
+        .from("unidades")
+        .update(data as any)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["unidades-completas"] });
+      queryClient.invalidateQueries({ queryKey: ["unidades"] });
+      queryClient.invalidateQueries({ queryKey: ["unidade"] });
+      toast.success("Unidade atualizada com sucesso");
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar unidade:", error);
+      toast.error("Erro ao atualizar unidade");
+    },
+  });
+}
+
+export function useDeleteUnidadeCompleta() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("unidades").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["unidades-completas"] });
+      queryClient.invalidateQueries({ queryKey: ["unidades"] });
+      toast.success("Unidade excluída com sucesso");
+    },
+    onError: (error) => {
+      console.error("Erro ao excluir unidade:", error);
+      toast.error("Erro ao excluir unidade");
+    },
+  });
+}
+
+// ==================== PROPRIETÁRIOS ====================
+export function useProprietarioByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["proprietario", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return null;
+      
+      const { data, error } = await supabase
+        .from("proprietarios_unidade")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as ProprietarioUnidade | null;
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useUpsertProprietario() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<ProprietarioUnidade, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data: result, error } = await supabase
+        .from("proprietarios_unidade")
+        .upsert(data as any, { onConflict: 'unidade_id' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proprietario"] });
+      toast.success("Dados do proprietário salvos");
+    },
+    onError: (error) => {
+      console.error("Erro ao salvar proprietário:", error);
+      toast.error("Erro ao salvar dados do proprietário");
+    },
+  });
+}
+
+// ==================== INQUILINOS ====================
+export function useInquilinoByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["inquilino", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return null;
+      
+      const { data, error } = await supabase
+        .from("inquilinos_unidade")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as InquilinoUnidade | null;
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useUpsertInquilino() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<InquilinoUnidade, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data: result, error } = await supabase
+        .from("inquilinos_unidade")
+        .upsert(data as any, { onConflict: 'unidade_id' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inquilino"] });
+      toast.success("Dados do inquilino salvos");
+    },
+    onError: (error) => {
+      console.error("Erro ao salvar inquilino:", error);
+      toast.error("Erro ao salvar dados do inquilino");
+    },
+  });
+}
+
+export function useDeleteInquilino() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (unidadeId: string) => {
+      const { error } = await supabase
+        .from("inquilinos_unidade")
+        .delete()
+        .eq("unidade_id", unidadeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inquilino"] });
+      toast.success("Inquilino removido");
+    },
+  });
+}
+
+// ==================== MORADORES ====================
+export function useMoradoresByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["moradores", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return [];
+      
+      const { data, error } = await supabase
+        .from("moradores_unidade")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .order("nome_completo");
+
+      if (error) throw error;
+      return data as MoradorUnidade[];
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useCreateMorador() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<MoradorUnidade, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data: result, error } = await supabase
+        .from("moradores_unidade")
+        .insert(data as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["moradores"] });
+      toast.success("Morador adicionado");
+    },
+    onError: (error) => {
+      console.error("Erro ao adicionar morador:", error);
+      toast.error("Erro ao adicionar morador");
+    },
+  });
+}
+
+export function useUpdateMorador() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<MoradorUnidade> & { id: string }) => {
+      const { data: result, error } = await supabase
+        .from("moradores_unidade")
+        .update(data as any)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["moradores"] });
+      toast.success("Morador atualizado");
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar morador:", error);
+      toast.error("Erro ao atualizar morador");
+    },
+  });
+}
+
+export function useDeleteMorador() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("moradores_unidade").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["moradores"] });
+      toast.success("Morador removido");
+    },
+  });
+}
+
+// ==================== VEÍCULOS ====================
+export function useVeiculosByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["veiculos", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return [];
+      
+      const { data, error } = await supabase
+        .from("veiculos_unidade")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .order("placa");
+
+      if (error) throw error;
+      return data as VeiculoUnidade[];
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useCreateVeiculo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<VeiculoUnidade, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data: result, error } = await supabase
+        .from("veiculos_unidade")
+        .insert(data as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+      toast.success("Veículo adicionado");
+    },
+    onError: (error) => {
+      console.error("Erro ao adicionar veículo:", error);
+      toast.error("Erro ao adicionar veículo");
+    },
+  });
+}
+
+export function useUpdateVeiculo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<VeiculoUnidade> & { id: string }) => {
+      const { data: result, error } = await supabase
+        .from("veiculos_unidade")
+        .update(data as any)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+      toast.success("Veículo atualizado");
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar veículo:", error);
+      toast.error("Erro ao atualizar veículo");
+    },
+  });
+}
+
+export function useDeleteVeiculo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("veiculos_unidade").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+      toast.success("Veículo removido");
+    },
+  });
+}
+
+// ==================== ACESSOS ====================
+export function useAcessosByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["acessos", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return [];
+      
+      const { data, error } = await supabase
+        .from("acessos_unidade")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .order("tipo_acesso");
+
+      if (error) throw error;
+      return data as AcessoUnidade[];
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useCreateAcesso() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<AcessoUnidade, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data: result, error } = await supabase
+        .from("acessos_unidade")
+        .insert(data as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["acessos"] });
+      toast.success("Acesso adicionado");
+    },
+  });
+}
+
+export function useDeleteAcesso() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("acessos_unidade").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["acessos"] });
+      toast.success("Acesso removido");
+    },
+  });
+}
+
+// ==================== VISITANTES ====================
+export function useVisitantesByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["visitantes", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return [];
+      
+      const { data, error } = await supabase
+        .from("visitantes_autorizados")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .order("nome_completo");
+
+      if (error) throw error;
+      return data as VisitanteAutorizado[];
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useCreateVisitante() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<VisitanteAutorizado, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data: result, error } = await supabase
+        .from("visitantes_autorizados")
+        .insert(data as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["visitantes"] });
+      toast.success("Visitante adicionado");
+    },
+  });
+}
+
+export function useDeleteVisitante() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("visitantes_autorizados").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["visitantes"] });
+      toast.success("Visitante removido");
+    },
+  });
+}
+
+// ==================== ANIMAIS ====================
+export function useAnimaisByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["animais", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return [];
+      
+      const { data, error } = await supabase
+        .from("animais_unidade")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .order("nome");
+
+      if (error) throw error;
+      return data as AnimalUnidade[];
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useCreateAnimal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<AnimalUnidade, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data: result, error } = await supabase
+        .from("animais_unidade")
+        .insert(data as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["animais"] });
+      toast.success("Animal adicionado");
+    },
+  });
+}
+
+export function useDeleteAnimal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("animais_unidade").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["animais"] });
+      toast.success("Animal removido");
+    },
+  });
+}
+
+export function useUpdateAnimalPhoto() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, foto_url }: { id: string; foto_url: string | null }) => {
+      const { error } = await supabase
+        .from("animais_unidade")
+        .update({ foto_url })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["animais"] });
+      toast.success("Foto atualizada");
+    },
+  });
+}
+
+export function useUpdateAnimal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string } & Partial<Omit<AnimalUnidade, 'id' | 'created_at' | 'updated_at' | 'unidade_id'>>) => {
+      const { data: result, error } = await supabase
+        .from("animais_unidade")
+        .update(data as any)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["animais"] });
+      toast.success("Animal atualizado");
+    },
+  });
+}
+
+// ==================== VAGAS ====================
+export function useVagasByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["vagas", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return [];
+      
+      const { data, error } = await supabase
+        .from("vagas_garagem")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .order("numero_vaga");
+
+      if (error) throw error;
+      return data as VagaGaragem[];
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useCreateVaga() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<VagaGaragem, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data: result, error } = await supabase
+        .from("vagas_garagem")
+        .insert(data as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vagas"] });
+      toast.success("Vaga adicionada");
+    },
+  });
+}
+
+export function useUpdateVaga() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<VagaGaragem> & { id: string }) => {
+      const { data: result, error } = await supabase
+        .from("vagas_garagem")
+        .update(data as any)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vagas"] });
+      toast.success("Vaga atualizada");
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar vaga:", error);
+      toast.error("Erro ao atualizar vaga");
+    },
+  });
+}
+
+export function useDeleteVaga() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("vagas_garagem").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vagas"] });
+      toast.success("Vaga removida");
+    },
+  });
+}
+
+// ==================== OCORRÊNCIAS ====================
+export function useOcorrenciasByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["ocorrencias", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return [];
+      
+      const { data, error } = await supabase
+        .from("ocorrencias_unidade")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .order("data_ocorrencia", { ascending: false });
+
+      if (error) throw error;
+      return data as OcorrenciaUnidade[];
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useCreateOcorrencia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<OcorrenciaUnidade, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data: result, error } = await supabase
+        .from("ocorrencias_unidade")
+        .insert(data as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ocorrencias"] });
+      toast.success("Ocorrência registrada");
+    },
+  });
+}
+
+export function useUpdateOcorrencia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<OcorrenciaUnidade> & { id: string }) => {
+      const { data: result, error } = await supabase
+        .from("ocorrencias_unidade")
+        .update(data as any)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ocorrencias"] });
+      toast.success("Ocorrência atualizada");
+    },
+  });
+}
+
+// ==================== DOCUMENTOS ====================
+export function useDocumentosByUnidade(unidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["documentos-unidade", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return [];
+      
+      const { data, error } = await supabase
+        .from("documentos_unidade")
+        .select("*")
+        .eq("unidade_id", unidadeId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as DocumentoUnidade[];
+    },
+    enabled: !!unidadeId,
+  });
+}
+
+export function useCreateDocumento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Omit<DocumentoUnidade, 'id' | 'created_at'>) => {
+      const { data: result, error } = await supabase
+        .from("documentos_unidade")
+        .insert(data as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documentos-unidade"] });
+      toast.success("Documento adicionado");
+    },
+  });
+}
+
+export function useDeleteDocumento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, storagePath }: { id: string; storagePath: string }) => {
+      // Remove from storage first
+      await supabase.storage.from("anexos").remove([storagePath]);
+      
+      // Then remove from database
+      const { error } = await supabase.from("documentos_unidade").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documentos-unidade"] });
+      toast.success("Documento removido");
+    },
+  });
+}
