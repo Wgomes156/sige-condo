@@ -41,6 +41,10 @@ const getStatusColor = (status: string) => {
       return "bg-green-500/20 text-green-700 border-green-500/30";
     case "Aguardando retorno":
       return "bg-orange-500/20 text-orange-700 border-orange-500/30";
+    case "Com Contrato":
+      return "bg-emerald-500/20 text-emerald-700 border-emerald-500/30";
+    case "Finalizado sem contrato":
+      return "bg-slate-500/20 text-slate-700 border-slate-500/30";
     default:
       return "bg-gray-500/20 text-gray-700 border-gray-500/30";
   }

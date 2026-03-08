@@ -53,7 +53,7 @@ const atendimentoSchema = z.object({
   condominio_uf: z.string().optional(),
   condominio_cnpj: z.string().optional(),
   condominio_tipo_imovel: z.string().optional(),
-  
+
   // Síndico
   sindico_nome: z.string().optional(),
   sindico_telefone: z.string().optional(),
@@ -94,6 +94,8 @@ const statusOptions = [
   "Tem demanda",
   "Finalizado",
   "Aguardando retorno",
+  "Com Contrato",
+  "Finalizado sem contrato",
 ];
 
 const motivosContato = [
@@ -203,7 +205,7 @@ export function NovoAtendimentoForm({ open, onOpenChange }: NovoAtendimentoFormP
                   Dados do Atendimento
                 </h3>
                 <Separator />
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}

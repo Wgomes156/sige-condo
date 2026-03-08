@@ -1,13 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Bell, 
-  AlertCircle, 
-  Wrench, 
-  Users, 
+import {
+  Bell,
+  AlertCircle,
+  Wrench,
+  Users,
   DollarSign,
-  Calendar
+  Calendar,
+  MessageSquare
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,33 +21,33 @@ interface MeusComunicadosProps {
 }
 
 const tipoConfig = {
-  aviso: { 
-    label: "Aviso", 
-    variant: "outline" as const, 
+  aviso: {
+    label: "Aviso",
+    variant: "outline" as const,
     icon: Bell,
     color: "text-blue-500"
   },
-  urgente: { 
-    label: "Urgente", 
-    variant: "destructive" as const, 
+  urgente: {
+    label: "Urgente",
+    variant: "destructive" as const,
     icon: AlertCircle,
     color: "text-destructive"
   },
-  manutencao: { 
-    label: "Manutenção", 
-    variant: "secondary" as const, 
+  manutencao: {
+    label: "Manutenção",
+    variant: "secondary" as const,
     icon: Wrench,
     color: "text-orange-500"
   },
-  assembleia: { 
-    label: "Assembleia", 
-    variant: "default" as const, 
+  assembleia: {
+    label: "Assembleia",
+    variant: "default" as const,
     icon: Users,
     color: "text-purple-500"
   },
-  financeiro: { 
-    label: "Financeiro", 
-    variant: "outline" as const, 
+  financeiro: {
+    label: "Financeiro",
+    variant: "outline" as const,
     icon: DollarSign,
     color: "text-green-500"
   },
@@ -105,15 +107,14 @@ export function MeusComunicados({ comunicados, isLoading }: MeusComunicadosProps
           {comunicadosOrdenados.map(comunicado => {
             const config = tipoConfig[comunicado.tipo];
             const Icon = config.icon;
-            
+
             return (
-              <div 
-                key={comunicado.id} 
-                className={`p-4 rounded-lg border ${
-                  comunicado.tipo === "urgente" 
-                    ? "border-destructive bg-destructive/5" 
-                    : "bg-muted/30"
-                }`}
+              <div
+                key={comunicado.id}
+                className={`p-4 rounded-lg border ${comunicado.tipo === "urgente"
+                  ? "border-destructive bg-destructive/5"
+                  : "bg-muted/30"
+                  }`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`p-2 rounded-full bg-background ${config.color}`}>
@@ -127,14 +128,28 @@ export function MeusComunicados({ comunicados, isLoading }: MeusComunicadosProps
                     <p className="text-sm text-muted-foreground mb-2">
                       {comunicado.conteudo}
                     </p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {format(new Date(comunicado.data_publicacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                      </span>
-                      {comunicado.condominios?.nome && (
-                        <span>{comunicado.condominios.nome}</span>
-                      )}
+                    <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {format(new Date(comunicado.data_publicacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        </span>
+                        {comunicado.condominios?.nome && (
+                          <span>{comunicado.condominios.nome}</span>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-[10px] text-green-600 border-green-600 hover:bg-green-50"
+                        onClick={() => {
+                          const text = `📢 *${comunicado.titulo.toUpperCase()}*\n\n${comunicado.conteudo}`;
+                          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                        }}
+                      >
+                        <MessageSquare className="mr-1 h-3 w-3" />
+                        Compartilhar
+                      </Button>
                     </div>
                   </div>
                 </div>

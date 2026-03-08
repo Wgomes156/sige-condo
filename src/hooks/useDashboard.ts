@@ -62,7 +62,7 @@ export function useDashboardStats(condominioId?: string | null) {
       let queryFinalizados = supabase
         .from("atendimentos")
         .select("*", { count: "exact", head: true })
-        .eq("status", "Finalizado")
+        .in("status", ["Finalizado", "Com Contrato", "Finalizado sem contrato"])
         .gte("updated_at", hoje.toISOString());
       if (condominioId) queryFinalizados = queryFinalizados.eq("condominio_id", condominioId);
       const { count: finalizadosHoje } = await queryFinalizados;
@@ -107,7 +107,7 @@ export function useAtendimentosPorStatus(condominioId?: string | null) {
     queryFn: async (): Promise<ChartData[]> => {
       let query = supabase.from("atendimentos").select("status");
       if (condominioId) query = query.eq("condominio_id", condominioId);
-      
+
       const { data, error } = await query;
 
       if (error) throw error;
@@ -131,7 +131,7 @@ export function useAtendimentosPorCanal(condominioId?: string | null) {
     queryFn: async (): Promise<ChartData[]> => {
       let query = supabase.from("atendimentos").select("canal");
       if (condominioId) query = query.eq("condominio_id", condominioId);
-      
+
       const { data, error } = await query;
 
       if (error) throw error;
@@ -155,7 +155,7 @@ export function useAtendimentosPorMotivo(condominioId?: string | null) {
     queryFn: async (): Promise<ChartData[]> => {
       let query = supabase.from("atendimentos").select("motivo");
       if (condominioId) query = query.eq("condominio_id", condominioId);
-      
+
       const { data, error } = await query;
 
       if (error) throw error;

@@ -82,7 +82,7 @@ export function useRelatorioResumo(filters: RelatorioFilters) {
 
       const resumo: ResumoGeral = {
         totalAtendimentos: atendimentos?.length || 0,
-        totalFinalizados: atendimentos?.filter((a) => a.status === "Finalizado").length || 0,
+        totalFinalizados: atendimentos?.filter((a) => ["Finalizado", "Com Contrato", "Finalizado sem contrato"].includes(a.status)).length || 0,
         totalEmAndamento: atendimentos?.filter((a) => a.status === "Em andamento").length || 0,
         totalCondominios: condominios?.length || 0,
         totalOperadores: operadores.size,
@@ -119,7 +119,7 @@ export function useRelatorioPorOperador(filters: RelatorioFilters) {
           em_andamento: 0,
         };
         existing.total++;
-        if (a.status === "Finalizado") existing.finalizados++;
+        if (["Finalizado", "Com Contrato", "Finalizado sem contrato"].includes(a.status)) existing.finalizados++;
         if (a.status === "Em andamento") existing.em_andamento++;
         porOperador.set(a.operador_nome, existing);
       });

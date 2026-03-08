@@ -71,6 +71,8 @@ const statusOptions = [
   "Tem demanda",
   "Finalizado",
   "Aguardando retorno",
+  "Com Contrato",
+  "Finalizado sem contrato",
 ];
 
 const historicoStatusOptions = [
@@ -154,7 +156,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: Edi
 
   const onSubmit = async (data: AtendimentoFormData) => {
     if (!atendimento) return;
-    
+
     try {
       await updateAtendimento.mutateAsync({
         id: atendimento.id,
@@ -213,7 +215,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: Edi
                   Dados do Atendimento
                 </h3>
                 <Separator />
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}

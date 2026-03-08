@@ -10,6 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -227,17 +228,33 @@ export function NovoComunicadoForm({ open, onOpenChange, comunicadoEdit }: NovoC
               )}
             />
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Salvando..." : comunicadoEdit ? "Salvar" : "Publicar"}
-              </Button>
+            <div className="flex justify-between items-center pt-4">
+              {comunicadoEdit && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-green-600 border-green-600 hover:bg-green-50"
+                  onClick={() => {
+                    const text = `📢 *${form.getValues("titulo").toUpperCase()}*\n\n${form.getValues("conteudo")}`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                  }}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Enviar WhatsApp
+                </Button>
+              )}
+              <div className="flex justify-end gap-2 ml-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Salvando..." : comunicadoEdit ? "Salvar" : "Publicar"}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>

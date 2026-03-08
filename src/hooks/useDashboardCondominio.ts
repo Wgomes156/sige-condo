@@ -84,7 +84,7 @@ export function useDashboardCondominioStats(condominioId: string | undefined) {
         .from("atendimentos")
         .select("*", { count: "exact", head: true })
         .eq("condominio_id", condominioId)
-        .eq("status", "Finalizado")
+        .in("status", ["Finalizado", "Com Contrato", "Finalizado sem contrato"])
         .gte("updated_at", hoje.toISOString());
 
       // Total de unidades

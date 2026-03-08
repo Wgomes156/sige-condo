@@ -29,6 +29,10 @@ const getStatusColor = (status: string) => {
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
     case "Aguardando retorno":
       return "bg-orange-100 text-orange-800 border-orange-200";
+    case "Com Contrato":
+      return "bg-emerald-100 text-emerald-800 border-emerald-200";
+    case "Finalizado sem contrato":
+      return "bg-slate-100 text-slate-800 border-slate-200";
     default:
       return "";
   }
@@ -150,22 +154,22 @@ export function AtendimentoDetalhes({ open, onOpenChange, atendimento }: Atendim
 
         <div className="mt-6 space-y-1">
           <Separator className="my-4" />
-          
+
           <h3 className="font-semibold text-sm uppercase text-muted-foreground mb-3">
             Dados do Atendimento
           </h3>
-          
+
           <InfoRow
             label="Data"
             value={format(new Date(atendimento.data), "dd/MM/yyyy", { locale: ptBR })}
             icon={<Calendar className="h-3 w-3" />}
           />
-          
+
           <InfoRow
             label="Hora"
             value={atendimento.hora?.slice(0, 5)}
           />
-          
+
           <InfoRow
             label="Operador"
             value={atendimento.operador_nome}
@@ -193,23 +197,23 @@ export function AtendimentoDetalhes({ open, onOpenChange, atendimento }: Atendim
           />
 
           <Separator className="my-4" />
-          
+
           <h3 className="font-semibold text-sm uppercase text-muted-foreground mb-3">
             Dados do Cliente
           </h3>
-          
+
           <InfoRow
             label="Nome"
             value={atendimento.cliente_nome}
             icon={<User className="h-3 w-3" />}
           />
-          
+
           <InfoRow
             label="Telefone"
             value={atendimento.cliente_telefone}
             icon={<Phone className="h-3 w-3" />}
           />
-          
+
           <InfoRow
             label="E-mail"
             value={atendimento.cliente_email}
@@ -217,11 +221,11 @@ export function AtendimentoDetalhes({ open, onOpenChange, atendimento }: Atendim
           />
 
           <Separator className="my-4" />
-          
+
           <h3 className="font-semibold text-sm uppercase text-muted-foreground mb-3">
             Condomínio
           </h3>
-          
+
           <InfoRow
             label="Nome"
             value={atendimento.condominio_nome}
@@ -231,11 +235,11 @@ export function AtendimentoDetalhes({ open, onOpenChange, atendimento }: Atendim
           {atendimento.observacoes && (
             <>
               <Separator className="my-4" />
-              
+
               <h3 className="font-semibold text-sm uppercase text-muted-foreground mb-3">
                 Observações
               </h3>
-              
+
               <p className="text-sm whitespace-pre-wrap text-muted-foreground">
                 {atendimento.observacoes}
               </p>

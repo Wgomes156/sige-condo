@@ -15,7 +15,7 @@ export interface Comunicado {
   ativo: boolean;
   created_at: string;
   updated_at: string;
-  condominios?: { nome: string };
+  condominios?: { nome: string; whatsapp_grupo_link?: string | null };
 }
 
 export interface ComunicadoInput {
@@ -38,25 +38,25 @@ export function useComunicadosMorador() {
         .order("data_publicacao", { ascending: false });
 
       if (error) throw error;
-      
+
       // Buscar nomes dos condomínios separadamente
       const comunicados = data || [];
       const condominioIds = [...new Set(comunicados.map((c: any) => c.condominio_id))];
-      
+
       if (condominioIds.length > 0) {
-        const { data: condominiosData } = await supabase
-          .from("condominios")
-          .select("id, nome")
+        const { data: condominiosData } = await (supabase
+          .from("condominios") as any)
+          .select("id, nome, whatsapp_grupo_link")
           .in("id", condominioIds);
-        
-        const condominiosMap = new Map(condominiosData?.map(c => [c.id, c.nome]) || []);
-        
+
+        const condominiosMap = new Map((condominiosData as any[])?.map(c => [c.id, { nome: c.nome, whatsapp_grupo_link: c.whatsapp_grupo_link }]) || []);
+
         return comunicados.map((c: any) => ({
           ...c,
-          condominios: { nome: condominiosMap.get(c.condominio_id) || "" }
+          condominios: condominiosMap.get(c.condominio_id) || { nome: "", whatsapp_grupo_link: null }
         })) as unknown as Comunicado[];
       }
-      
+
       return comunicados as unknown as Comunicado[];
     },
   });
@@ -78,24 +78,24 @@ export function useComunicados(condominioId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      
+
       const comunicados = data || [];
       const condominioIds = [...new Set(comunicados.map((c: any) => c.condominio_id))];
-      
+
       if (condominioIds.length > 0) {
-        const { data: condominiosData } = await supabase
-          .from("condominios")
-          .select("id, nome")
+        const { data: condominiosData } = await (supabase
+          .from("condominios") as any)
+          .select("id, nome, whatsapp_grupo_link")
           .in("id", condominioIds);
-        
-        const condominiosMap = new Map(condominiosData?.map(c => [c.id, c.nome]) || []);
-        
+
+        const condominiosMap = new Map((condominiosData as any[])?.map(c => [c.id, { nome: c.nome, whatsapp_grupo_link: c.whatsapp_grupo_link }]) || []);
+
         return comunicados.map((c: any) => ({
           ...c,
-          condominios: { nome: condominiosMap.get(c.condominio_id) || "" }
+          condominios: condominiosMap.get(c.condominio_id) || { nome: "", whatsapp_grupo_link: null }
         })) as unknown as Comunicado[];
       }
-      
+
       return comunicados as unknown as Comunicado[];
     },
   });
@@ -109,7 +109,7 @@ export function useCreateComunicado() {
   return useMutation({
     mutationFn: async (input: ComunicadoInput) => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       const { data, error } = await supabase
         .from("comunicados" as any)
         .insert({

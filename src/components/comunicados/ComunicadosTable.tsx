@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Edit, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Edit, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageSquare } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -65,6 +65,17 @@ export function ComunicadosTable({ comunicados, onEdit }: ComunicadosTableProps)
     deleteComunicado.mutate(id);
   };
 
+  const handleSendWhatsApp = (comunicado: Comunicado) => {
+    const text = `📢 *${comunicado.titulo.toUpperCase()}*\n\n${comunicado.conteudo}\n\n_Publicado em: ${format(new Date(comunicado.data_publicacao), "dd/MM/yyyy")}_`;
+    const encodedText = encodeURIComponent(text);
+
+    // Se o condomínio tiver um link de grupo, podemos tentar abrir ele diretamente ou apenas compartilhar o texto.
+    // A melhor experiência de "envio" individual/grupo sem saber o ID é wa.me.
+    // Se tivermos o link do grupo, o usuário pode querer entrar nele, mas aqui o objetivo é "enviar a mensagem".
+    const whatsappUrl = `https://wa.me/?text=${encodedText}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
   if (comunicados.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -126,6 +137,15 @@ export function ComunicadosTable({ comunicados, onEdit }: ComunicadosTableProps)
                       ) : (
                         <Eye className="h-4 w-4" />
                       )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleSendWhatsApp(comunicado)}
+                      title="Enviar via WhatsApp"
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                    >
+                      <MessageSquare className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"

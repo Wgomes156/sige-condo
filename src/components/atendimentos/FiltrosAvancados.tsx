@@ -41,6 +41,8 @@ const statusOptions = [
   "Tem demanda",
   "Finalizado",
   "Aguardando retorno",
+  "Com Contrato",
+  "Finalizado sem contrato",
 ];
 
 const motivosContato = [
