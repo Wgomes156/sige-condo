@@ -105,7 +105,7 @@ export default function Auth() {
     const value = signupValues[fieldName];
     const error = signupErrors[fieldName];
     const touched = signupTouched[fieldName];
-    
+
     if (!value || value.length === 0) return "empty";
     if (error) return "error";
     if (touched || value.length > 0) {
@@ -124,7 +124,7 @@ export default function Auth() {
     const isShaking = shakeFields[fieldName];
     const baseStyles = "pl-10 pr-10 h-11 bg-background transition-all duration-200";
     const shakeClass = isShaking ? "animate-shake" : "";
-    
+
     switch (status) {
       case "valid":
         return `${baseStyles} ${shakeClass} border-green-500 focus:border-green-500 focus:ring-green-500/20`;
@@ -139,13 +139,13 @@ export default function Auth() {
   const triggerShakeOnErrors = () => {
     const errors = signupForm.formState.errors;
     const fieldsToShake: Record<string, boolean> = {};
-    
+
     (Object.keys(errors) as Array<keyof SignupFormData>).forEach((field) => {
       fieldsToShake[field] = true;
     });
-    
+
     setShakeFields(fieldsToShake);
-    
+
     // Remove shake after animation completes
     setTimeout(() => {
       setShakeFields({});
@@ -155,7 +155,7 @@ export default function Auth() {
   // Render validation icon
   const renderValidationIcon = (fieldName: keyof SignupFormData) => {
     const status = getFieldStatus(fieldName);
-    
+
     if (status === "valid") {
       return (
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -176,7 +176,7 @@ export default function Auth() {
   // Render validation icon for password fields (needs special handling due to eye toggle)
   const renderPasswordValidationIcon = (fieldName: keyof SignupFormData, showPassword: boolean, toggleShow: () => void) => {
     const status = getFieldStatus(fieldName);
-    
+
     return (
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
         {status === "valid" && <Check className="h-4 w-4 text-green-500" />}
@@ -505,13 +505,13 @@ export default function Auth() {
 
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "signup")} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50">
-            <TabsTrigger 
-              value="login" 
+            <TabsTrigger
+              value="login"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
             >
               Entrar
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="signup"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
             >
@@ -776,29 +776,29 @@ export default function Auth() {
         <div className="absolute top-20 -left-20 w-80 h-80 bg-secondary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
-        
+
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
-          <motion.div 
+          <motion.div
             className="mb-12"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <div className="bg-white rounded-2xl p-4 w-fit shadow-2xl">
-              <img src={logoPsc} alt="Manage Condo" className="h-16 w-auto" />
+              <img src={logoPsc} alt="CondoPlus" className="h-16 w-auto" />
             </div>
           </motion.div>
-          
-          <motion.h1 
+
+          <motion.h1
             className="text-4xl xl:text-5xl font-bold text-[hsl(35,92%,55%)] mb-2 leading-tight"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
           >
-            Manage Condo
+            CondoPlus
           </motion.h1>
-          <motion.p 
+          <motion.p
             className="text-lg text-primary-foreground/70 mb-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -806,8 +806,8 @@ export default function Auth() {
           >
             Sistema de Gestão de Condomínio
           </motion.p>
-          
-          <motion.p 
+
+          <motion.p
             className="text-primary-foreground/80 text-lg mb-12 max-w-md"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -817,7 +817,7 @@ export default function Auth() {
           </motion.p>
 
           {/* Features */}
-          <motion.div 
+          <motion.div
             className="space-y-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -832,7 +832,7 @@ export default function Auth() {
                 <p className="text-primary-foreground/70 text-sm">Controle total de unidades e moradores</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center">
                 <Shield className="w-6 h-6 text-secondary" />
@@ -842,7 +842,7 @@ export default function Auth() {
                 <p className="text-primary-foreground/70 text-sm">Seus dados protegidos com criptografia</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center">
                 <Users className="w-6 h-6 text-secondary" />
@@ -860,16 +860,16 @@ export default function Auth() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 bg-gradient-to-b from-muted/30 to-background">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <motion.div 
+          <motion.div
             className="lg:hidden mb-8 text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
             <div className="inline-block bg-white rounded-2xl p-4 shadow-lg mb-4">
-              <img src={logoPsc} alt="Manage Condo" className="h-12 w-auto" />
+              <img src={logoPsc} alt="CondoPlus" className="h-12 w-auto" />
             </div>
-            <h1 className="text-2xl font-bold text-[hsl(35,92%,55%)]">Manage Condo</h1>
+            <h1 className="text-2xl font-bold text-[hsl(35,92%,55%)]">CondoPlus</h1>
             <p className="text-muted-foreground">Sistema de Gestão de Condomínios</p>
           </motion.div>
 
@@ -883,16 +883,16 @@ export default function Auth() {
 
           {/* Footer */}
           <div className="text-center mt-6 space-y-1">
-            <a 
-              href="https://pscadmcondominio.com/" 
-              target="_blank" 
+            <a
+              href="https://condoplus.solutions"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-secondary hover:text-secondary/80 font-medium transition-colors"
             >
-              pscadmcondominio.com
+              condoplus.solutions
             </a>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Manage Condo. Todos os direitos reservados.
+              © {new Date().getFullYear()} CondoPlus. Todos os direitos reservados.
             </p>
           </div>
         </div>

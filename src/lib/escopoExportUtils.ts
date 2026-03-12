@@ -46,7 +46,7 @@ export const exportEscopoToPDF = () => {
   const addSpace = (space: number = 6) => { y += space; };
 
   // Header
-  addTitle('MANAGE CONDO', 20);
+  addTitle('CONDOPLUS', 20);
   addTitle('Sistema de Gestão de Condomínios', 14);
   addSpace(4);
   doc.setFontSize(10);
@@ -61,7 +61,7 @@ export const exportEscopoToPDF = () => {
 
   // 2. Módulos
   addTitle('2. MÓDULOS DO SISTEMA');
-  
+
   addSubtitle('2.1 Dashboard');
   addBullet('Painel de indicadores com métricas em tempo real');
   addBullet('Visualização de atendimentos do dia, pendências e alertas');
@@ -173,7 +173,7 @@ export const exportEscopoToPDF = () => {
   doc.addPage();
   y = 20;
   addTitle('7. ESTRUTURA DO BANCO DE DADOS');
-  
+
   const tables = [
     { name: 'profiles', desc: 'Perfis de usuários do sistema' },
     { name: 'user_roles', desc: 'Papéis de acesso (admin/operador)' },
@@ -225,7 +225,7 @@ export const exportEscopoToPDF = () => {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   addParagraph('Envia e-mails de cobrança para moradores baseado nos boletos cadastrados.');
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   if (y > 260) { doc.addPage(); y = 20; }
@@ -235,7 +235,7 @@ export const exportEscopoToPDF = () => {
   addBullet('boleto_id (string, opcional): ID de um boleto específico', 5);
   addBullet('boleto_ids (array, opcional): Lista de IDs de boletos para envio em massa', 5);
   addBullet('tipo (string, opcional): "cobranca" | "lembrete" | "inadimplencia" (default: "cobranca")', 5);
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   if (y > 260) { doc.addPage(); y = 20; }
@@ -258,7 +258,7 @@ export const exportEscopoToPDF = () => {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   addParagraph('Gera boletos automaticamente para todas as unidades ativas de condomínios com cobrança configurada.');
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   if (y > 260) { doc.addPage(); y = 20; }
@@ -267,7 +267,7 @@ export const exportEscopoToPDF = () => {
   doc.setFont('helvetica', 'normal');
   addBullet('condominio_id (string): Filtrar por condomínio específico', 5);
   addBullet('referencia (string): Definir mês/ano de referência manualmente', 5);
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   if (y > 260) { doc.addPage(); y = 20; }

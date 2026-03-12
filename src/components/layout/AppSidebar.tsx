@@ -81,8 +81,8 @@ export function AppSidebar() {
   const isCollapsed = state === "collapsed";
 
   // Escolher menu baseado no role
-  const menuItems = userRole === "morador" 
-    ? menuItemsMorador 
+  const menuItems = userRole === "morador"
+    ? menuItemsMorador
     : userRole === "admin"
       ? [...menuItemsAdmin, ...menuItemsAdminOnly]
       : menuItemsAdmin;
@@ -98,10 +98,9 @@ export function AppSidebar() {
         <div className="bg-white w-full h-16 flex items-center justify-center px-3">
           <img
             src={logo}
-            alt="Manage Condo"
-            className={`transition-all duration-200 ${
-              isCollapsed ? "w-8 h-8" : "h-24 w-auto"
-            }`}
+            alt="CondoPlus"
+            className={`transition-all duration-200 ${isCollapsed ? "w-8 h-8" : "h-24 w-auto"
+              }`}
           />
         </div>
       </SidebarHeader>
@@ -142,9 +141,8 @@ export function AppSidebar() {
           className="w-full justify-center text-sidebar-foreground hover:bg-sidebar-accent"
         >
           <ChevronLeft
-            className={`h-4 w-4 transition-transform duration-200 ${
-              isCollapsed ? "rotate-180" : ""
-            }`}
+            className={`h-4 w-4 transition-transform duration-200 ${isCollapsed ? "rotate-180" : ""
+              }`}
           />
           {!isCollapsed && <span className="ml-2">Recolher</span>}
         </Button>

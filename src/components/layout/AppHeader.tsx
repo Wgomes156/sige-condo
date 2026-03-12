@@ -45,8 +45,8 @@ export function AppHeader() {
           <Menu className="h-5 w-5" />
         </SidebarTrigger>
         <div>
-        <h1 className="text-lg font-semibold text-secondary">
-            Manage Condo
+          <h1 className="text-lg font-semibold text-secondary">
+            CondoPlus
           </h1>
           <p className="text-sm text-muted-foreground">
             Sistema de Gestão de Condomínios
@@ -56,15 +56,15 @@ export function AppHeader() {
 
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        
+
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           <span className="absolute top-1 right-1 h-2 w-2 bg-secondary rounded-full" />
         </Button>
 
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={handleSignOut}
           className="hidden sm:flex items-center gap-2 text-muted-foreground hover:text-destructive hover:border-destructive"
         >
@@ -91,7 +91,7 @@ export function AppHeader() {
             <DropdownMenuItem>Perfil</DropdownMenuItem>
             <DropdownMenuItem>Preferências</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-destructive cursor-pointer"
               onClick={handleSignOut}
             >
