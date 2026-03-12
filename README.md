@@ -1,4 +1,4 @@
-# SIGE Condo – Sistema Integrado de Gestão de Condomínios
+# CondoPlus – Sistema Integrado de Gestão de Condomínios
 
 Sistema completo para administradoras de condomínios, desenvolvido com React, TypeScript, Vite e Supabase.
 
@@ -99,15 +99,13 @@ git push origin main
 | `npm run lint` | Verificação de código |
 | `npm run test` | Testes unitários |
 
+## Hospedagem (Hostinger)
+
+O sistema está pronto para ser hospedado na Hostinger. Os arquivos de produção são gerados na pasta `dist/` e incluem um arquivo `.htaccess` para suportar o roteamento do React (SPA).
+
+1. Gere o build: `npm run build`
+2. Suba o conteúdo da pasta `dist/` para a pasta `public_html` da Hostinger.
+
 ## Variáveis de ambiente
 
-Consulte o arquivo [`.env.example`](.env.example) para ver as variáveis necessárias.
-
-## Estrutura do Banco de Dados
-
-As migrations do Supabase estão em `supabase/migrations/`. Para visualizar os dados localmente:
-
-```bash
-npx prisma studio
-```
-Ou utilize a extensão **SQLite Viewer** no VS Code para inspecionar arquivos `.db` se houver.
+Consulte o arquivo [`.env.example`](.env.example) para ver as variáveis necessárias. No Supabase, certifique-se de configurar o **Site URL** para o seu domínio (ex: `https://condoplus.solutions`).
