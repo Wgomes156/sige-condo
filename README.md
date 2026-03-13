@@ -120,6 +120,18 @@ Sempre que fizer mudanças no código, repita o processo:
 > [!NOTE]
 > O arquivo `.htaccess` (necessário para o roteamento do React) já está na pasta `public/` do projeto e será incluído automaticamente em todos os seus builds.
 
+## Segurança e Persistência de Dados
+
+É importante entender a separação entre os arquivos do site e os seus dados:
+
+-   **Hostinger (Frontend)**: Hospeda apenas a "interface" do sistema (código visual).
+-   **Supabase (Backend/Banco de Dados)**: Guarda todos os registros (moradores, condomínios, atendimentos).
+
+**Os seus dados estão seguros durante as atualizações:**
+1.  Quando você faz um novo upload na Hostinger, você está apenas trocando a "aparência" do sistema.
+2.  O banco de dados no Supabase é independente e **não é apagado** nas atualizações do site.
+3.  Mesmo que a Hostinger fique fora do ar, os seus dados continuam intactos na infraestrutura do Supabase.
+
 ## Variáveis de ambiente
 
 Consulte o arquivo [`.env.example`](.env.example) para ver as variáveis necessárias. No Supabase, certifique-se de configurar o **Site URL** para o seu domínio (ex: `https://condoplus.solutions`).
