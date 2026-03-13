@@ -103,12 +103,21 @@ git push origin main
 
 O sistema está configurado para ser hospedado na Hostinger como um site estático.
 
-### Passos para a Primeira Hospedagem:
+### Configuração de Caminhos Relativos (Correção de Erro 404)
+
+Anteriormente, o sistema apresentava uma tela em branco (Blank Page) na Hostinger porque os arquivos de assets (CSS/JS) eram referenciados com caminhos absolutos (ex: `/assets/...`). 
+
+**Correção aplicada:**
+- O arquivo `vite.config.ts` foi configurado com `base: './'`. 
+- Isso garante que todos os links gerados no `index.html` sejam relativos ao diretório atual, evitando erros de "Not Found" em servidores de hospedagem compartilhada.
+
+### Passos para a Hospedagem:
 
 1.  **Gere o build**: No terminal, rode `npm run build`. Isso criará a pasta `dist/`.
-2.  **Compacte os arquivos**: Entre na pasta `dist/`, selecione **todos** os arquivos lá dentro e crie um arquivo ZIP (ex: `site.zip`).
+2.  **Verifique o index.html**: Abra `dist/index.html` e confirme se os caminhos começam com `./assets/` (ex: `src="./assets/index-xxx.js"`).
+3.  **Compacte os arquivos**: Entre na pasta `dist/`, selecione **todos** os arquivos lá dentro e crie um arquivo ZIP (ex: `site.zip`).
     *   *Importante: O arquivo `index.html` deve estar na raiz do ZIP, não dentro de uma subpasta.*
-3.  **Upload**: No Gerenciador de Arquivos da Hostinger, envie o ZIP para a pasta `public_html` e extraia.
+4.  **Upload**: No Gerenciador de Arquivos da Hostinger, envie o ZIP para a pasta `public_html` e extraia.
 
 ### Como atualizar o sistema:
 
