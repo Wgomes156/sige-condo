@@ -101,10 +101,24 @@ git push origin main
 
 ## Hospedagem (Hostinger)
 
-O sistema está pronto para ser hospedado na Hostinger. Os arquivos de produção são gerados na pasta `dist/` e incluem um arquivo `.htaccess` para suportar o roteamento do React (SPA).
+O sistema está configurado para ser hospedado na Hostinger como um site estático.
 
-1. Gere o build: `npm run build`
-2. Suba o conteúdo da pasta `dist/` para a pasta `public_html` da Hostinger.
+### Passos para a Primeira Hospedagem:
+
+1.  **Gere o build**: No terminal, rode `npm run build`. Isso criará a pasta `dist/`.
+2.  **Compacte os arquivos**: Entre na pasta `dist/`, selecione **todos** os arquivos lá dentro e crie um arquivo ZIP (ex: `site.zip`).
+    *   *Importante: O arquivo `index.html` deve estar na raiz do ZIP, não dentro de uma subpasta.*
+3.  **Upload**: No Gerenciador de Arquivos da Hostinger, envie o ZIP para a pasta `public_html` e extraia.
+
+### Como atualizar o sistema:
+
+Sempre que fizer mudanças no código, repita o processo:
+1.  Rode `npm run build`.
+2.  Zipe o conteúdo de `dist/`.
+3.  Na Hostinger, apague os arquivos antigos da `public_html` e envie/extraia o novo ZIP.
+
+> [!NOTE]
+> O arquivo `.htaccess` (necessário para o roteamento do React) já está na pasta `public/` do projeto e será incluído automaticamente em todos os seus builds.
 
 ## Variáveis de ambiente
 
