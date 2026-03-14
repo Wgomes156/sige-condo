@@ -103,7 +103,6 @@ const condominioSchema = z.object({
   empresa_seguranca_nome: z.string().optional(),
   // Observações
   observacoes: z.string().optional(),
-  whatsapp_grupo_link: z.string().url("Link inválido").optional().or(z.literal("")),
 });
 
 type CondominioFormData = z.infer<typeof condominioSchema>;
@@ -194,7 +193,6 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
         seguranca_turno: "",
         empresa_seguranca_nome: "",
         observacoes: "",
-        whatsapp_grupo_link: "",
       },
     });
 
@@ -259,7 +257,6 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
           seguranca_turno: c.seguranca_turno || "",
           empresa_seguranca_nome: c.empresa_seguranca_nome || "",
           observacoes: condominio.observacoes || "",
-          whatsapp_grupo_link: (condominio as any).whatsapp_grupo_link || "",
         });
       } else {
         form.reset({
@@ -320,7 +317,6 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
           seguranca_turno: "",
           empresa_seguranca_nome: "",
           observacoes: "",
-          whatsapp_grupo_link: "",
         });
         setArquivoCnpj(null);
         setArquivoDocumentacao(null);
@@ -436,7 +432,6 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
           seguranca_turno: data.seguranca_turno || null,
           empresa_seguranca_nome: data.empresa_seguranca_nome || null,
           observacoes: data.observacoes || null,
-          whatsapp_grupo_link: data.whatsapp_grupo_link || null,
         };
 
         if (isEditing && condominio) {
@@ -1514,20 +1509,6 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                       )}
                     />
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="whatsapp_grupo_link"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Link do Grupo WhatsApp</FormLabel>
-                        <FormControl>
-                          <Input placeholder="https://chat.whatsapp.com/..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField

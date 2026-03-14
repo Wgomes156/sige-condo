@@ -15,7 +15,7 @@ export interface Comunicado {
   ativo: boolean;
   created_at: string;
   updated_at: string;
-  condominios?: { nome: string; whatsapp_grupo_link?: string | null };
+  condominios?: { nome: string };
 }
 
 export interface ComunicadoInput {
@@ -46,14 +46,14 @@ export function useComunicadosMorador() {
       if (condominioIds.length > 0) {
         const { data: condominiosData } = await (supabase
           .from("condominios") as any)
-          .select("id, nome, whatsapp_grupo_link")
+          .select("id, nome")
           .in("id", condominioIds);
 
-        const condominiosMap = new Map((condominiosData as any[])?.map(c => [c.id, { nome: c.nome, whatsapp_grupo_link: c.whatsapp_grupo_link }]) || []);
+        const condominiosMap = new Map((condominiosData as any[])?.map(c => [c.id, { nome: c.nome }]) || []);
 
         return comunicados.map((c: any) => ({
           ...c,
-          condominios: condominiosMap.get(c.condominio_id) || { nome: "", whatsapp_grupo_link: null }
+          condominios: condominiosMap.get(c.condominio_id) || { nome: "" }
         })) as unknown as Comunicado[];
       }
 
@@ -85,14 +85,14 @@ export function useComunicados(condominioId?: string) {
       if (condominioIds.length > 0) {
         const { data: condominiosData } = await (supabase
           .from("condominios") as any)
-          .select("id, nome, whatsapp_grupo_link")
+          .select("id, nome")
           .in("id", condominioIds);
 
-        const condominiosMap = new Map((condominiosData as any[])?.map(c => [c.id, { nome: c.nome, whatsapp_grupo_link: c.whatsapp_grupo_link }]) || []);
+        const condominiosMap = new Map((condominiosData as any[])?.map(c => [c.id, { nome: c.nome }]) || []);
 
         return comunicados.map((c: any) => ({
           ...c,
-          condominios: condominiosMap.get(c.condominio_id) || { nome: "", whatsapp_grupo_link: null }
+          condominios: condominiosMap.get(c.condominio_id) || { nome: "" }
         })) as unknown as Comunicado[];
       }
 
