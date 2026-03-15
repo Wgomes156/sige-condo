@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -64,7 +63,7 @@ export default function Boletos() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -149,9 +148,8 @@ export default function Boletos() {
           </TabsContent>
         </Tabs>
       </div>
-
       <NovoBoletoForm open={showNovoForm} onOpenChange={setShowNovoForm} />
       <ImportarBoletosForm open={showImportForm} onOpenChange={setShowImportForm} />
-    </MainLayout>
+    </>
   );
 }

@@ -103,13 +103,13 @@ git push origin main
 
 O sistema está configurado para ser hospedado na Hostinger como um site estático.
 
-### Configuração de Caminhos Relativos (Correção de Erro 404)
+### Configuração de Caminhos para Hostinger
 
-Anteriormente, o sistema apresentava uma tela em branco (Blank Page) na Hostinger porque os arquivos de assets (CSS/JS) eram referenciados com caminhos absolutos (ex: `/assets/...`). 
+O sistema usa `base: '/'` no `vite.config.ts`, que é a configuração correta para quando o sistema está hospedado em um domínio principal (ex: `https://condoplus.solutions`).
 
-**Correção aplicada:**
-- O arquivo `vite.config.ts` foi configurado com `base: './'`. 
-- Isso garante que todos os links gerados no `index.html` sejam relativos ao diretório atual, evitando erros de "Not Found" em servidores de hospedagem compartilhada.
+Isso evita que telas fiquem em branco (Blank Page) ao acessar URLs de subpáginas como `/boletos/recorrentes` e recarregar a página, pois os caminhos dos arquivos CSS/JS sempre buscarão a partir da raiz do domínio.
+
+ **Se você for hospedar em um subdiretório** (ex: `https://meusite.com/condoplus/`), você precisará alterar o `base` no `vite.config.ts` para `/condoplus/` antes de rodar o build.
 
 ### Passos para a Hospedagem:
 

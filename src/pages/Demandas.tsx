@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { useCondominios } from "@/hooks/useCondominios";
 import { useDemandasCondominio, useDemandasDashboard, useCategoriasDemanda } from "@/hooks/useDemandas";
 import { DashboardDemandasCards } from "@/components/demandas/DashboardDemandasCards";
@@ -38,7 +37,7 @@ export default function Demandas() {
   });
 
   return (
-    <MainLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -146,6 +145,6 @@ export default function Demandas() {
         demandaId={registrarExecucaoId}
         onClose={() => setRegistrarExecucaoId(null)}
       />
-    </MainLayout>
+    </>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -98,8 +97,7 @@ export default function Servicos() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="space-y-6">
+      <div className="space-y-6">
           <div className="flex justify-between items-center">
             <Skeleton className="h-8 w-64" />
             <Skeleton className="h-10 w-32" />
@@ -111,12 +109,11 @@ export default function Servicos() {
           </div>
           <Skeleton className="h-[400px]" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -182,32 +179,32 @@ export default function Servicos() {
           filtroBusca={buscaDebounced}
           filtroTipo={tipoFiltro}
         />
-
-        {/* Dialogs */}
-        <ServicoFormDialog
-          open={formDialogOpen}
-          onOpenChange={setFormDialogOpen}
-          servico={servicoSelecionado}
-          categorias={categorias}
-          onSubmit={handleSubmitForm}
-          loading={criarServico.isPending || atualizarServico.isPending}
-        />
-
-        <ExcluirServicoDialog
-          open={deleteDialogOpen}
-          onOpenChange={setDeleteDialogOpen}
-          servico={servicoSelecionado}
-          onConfirm={handleConfirmDelete}
-          loading={excluirServico.isPending}
-        />
-
-        <HistoricoServicoDialog
-          open={historicoDialogOpen}
-          onOpenChange={setHistoricoDialogOpen}
-          servico={servicoSelecionado}
-          buscarHistorico={buscarHistorico}
-        />
       </div>
-    </MainLayout>
+
+      {/* Dialogs */}
+      <ServicoFormDialog
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        servico={servicoSelecionado}
+        categorias={categorias}
+        onSubmit={handleSubmitForm}
+        loading={criarServico.isPending || atualizarServico.isPending}
+      />
+
+      <ExcluirServicoDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        servico={servicoSelecionado}
+        onConfirm={handleConfirmDelete}
+        loading={excluirServico.isPending}
+      />
+
+      <HistoricoServicoDialog
+        open={historicoDialogOpen}
+        onOpenChange={setHistoricoDialogOpen}
+        servico={servicoSelecionado}
+        buscarHistorico={buscarHistorico}
+      />
+    </>
   );
 }

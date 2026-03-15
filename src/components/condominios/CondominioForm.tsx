@@ -524,7 +524,7 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Tipo de Imóvel</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Selecione o tipo" />

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,7 +88,7 @@ export default function Reservas() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -313,6 +312,6 @@ export default function Reservas() {
       <NovaReservaDialog open={novaReservaOpen} onOpenChange={setNovaReservaOpen} />
       <ReservaDetalhesDialog reservaId={reservaDetalhesId} open={!!reservaDetalhesId} onOpenChange={(o) => !o && setReservaDetalhesId(null)} />
       <GerenciarAreasDialog open={gerenciarAreasOpen} onOpenChange={setGerenciarAreasOpen} />
-    </MainLayout>
+    </>
   );
 }

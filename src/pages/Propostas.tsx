@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, FileDown, RefreshCw } from "lucide-react";
@@ -112,7 +111,7 @@ export default function Propostas() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -180,19 +179,20 @@ export default function Propostas() {
           </CardContent>
         </Card>
 
-        {/* Dialogs */}
-        <PropostaDetalhesDialog
-          proposta={propostaSelecionada}
-          open={detalhesOpen}
-          onOpenChange={setDetalhesOpen}
-        />
-
-        <NovaPropostaWizard
-          open={wizardOpen}
-          onOpenChange={handleCloseWizard}
-          propostaEdicao={propostaEdicao}
-        />
       </div>
-    </MainLayout>
+
+      {/* Dialogs */}
+      <PropostaDetalhesDialog
+        proposta={propostaSelecionada}
+        open={detalhesOpen}
+        onOpenChange={setDetalhesOpen}
+      />
+
+      <NovaPropostaWizard
+        open={wizardOpen}
+        onOpenChange={handleCloseWizard}
+        propostaEdicao={propostaEdicao}
+      />
+    </>
   );
 }
