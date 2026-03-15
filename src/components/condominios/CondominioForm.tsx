@@ -492,7 +492,7 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
+          <div className="overflow-y-auto max-h-[calc(90vh-130px)] pr-4">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Dados Básicos */}
@@ -530,7 +530,7 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                                 <SelectValue placeholder="Selecione o tipo" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="z-[200]" position="popper">
                               {tiposImovel.map((tipo) => (
                                 <SelectItem key={tipo} value={tipo}>
                                   {tipo}
@@ -1055,7 +1055,7 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                                       <SelectValue placeholder="Selecione o tipo" />
                                     </SelectTrigger>
                                   </FormControl>
-                                  <SelectContent>
+                                  <SelectContent className="z-[200]" position="popper">
                                     <SelectItem value="cartao">Cartão</SelectItem>
                                     <SelectItem value="tag">TAG</SelectItem>
                                     <SelectItem value="manual">Manual</SelectItem>
@@ -1523,7 +1523,7 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                                 <SelectValue placeholder="Selecione" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="z-[200]" position="popper">
                               <SelectItem value="24h">24h</SelectItem>
                               <SelectItem value="8h">8h</SelectItem>
                               <SelectItem value="nao">Não possui</SelectItem>
@@ -1568,7 +1568,7 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                                 <SelectValue placeholder="Selecione" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="z-[200]" position="popper">
                               <SelectItem value="24h">24h</SelectItem>
                               <SelectItem value="8h">8h</SelectItem>
                               <SelectItem value="nao">Não possui</SelectItem>
@@ -1690,7 +1690,7 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                 </div>
               </form>
             </Form>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     );
