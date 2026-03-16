@@ -3639,7 +3639,7 @@ export const Constants = {
         "documento_pendente",
         "contato_necessario",
       ],
-      app_role: ["admin", "operador", "gerente", "morador"],
+      app_role: ["admin", "operador", "gerente", "morador", "sindico"],
       cobranca_modelo: [
         "por_unidade",
         "valor_minimo",

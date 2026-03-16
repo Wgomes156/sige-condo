@@ -39,7 +39,7 @@ const formSchema = z.object({
   nome: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
   email: z.string().email("E-mail inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-  role: z.enum(["admin", "gerente", "operador", "morador"] as const),
+  role: z.enum(["admin", "gerente", "operador", "morador", "sindico"] as const),
 });
 
 interface Condominio {
@@ -112,7 +112,7 @@ export function NovoUsuarioForm({
         email: values.email,
         password: values.password,
         role: values.role,
-        condominios_ids: selectedRole === "gerente" ? selectedCondominios : undefined,
+        condominios_ids: (selectedRole === "gerente" || selectedRole === "sindico") ? selectedCondominios : undefined,
         unidades_ids:
           selectedRole === "morador" ? selectedUnidades : undefined,
       };
@@ -215,6 +215,7 @@ export function NovoUsuarioForm({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="sindico">Síndico</SelectItem>
                       <SelectItem value="gerente">Gerente</SelectItem>
                       <SelectItem value="operador">Operador</SelectItem>
                       <SelectItem value="morador">Morador</SelectItem>
@@ -230,7 +231,7 @@ export function NovoUsuarioForm({
               )}
             />
 
-            {selectedRole === "gerente" && (
+            {(selectedRole === "gerente" || selectedRole === "sindico") && (
               <div className="space-y-2">
                 <FormLabel>Condomínios com acesso</FormLabel>
                 <ScrollArea className="h-[150px] border rounded-md p-2">

@@ -101,8 +101,8 @@ serve(async (req) => {
       console.error("Role insertion error:", roleInsertError);
     }
 
-    // Add condominio access for gerente
-    if (role === "gerente" && condominios_ids?.length) {
+    // Add condominio access for gerente or sindico
+    if ((role === "gerente" || role === "sindico") && condominios_ids?.length) {
       const condominioInserts = condominios_ids.map((condId: string) => ({
         user_id: newUserId,
         condominio_id: condId,
