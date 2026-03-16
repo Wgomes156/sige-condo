@@ -33,9 +33,19 @@ Sistema completo para administradoras de condomínios, desenvolvido com React, T
 | Relatórios | Relatórios gerenciais e de inadimplência |
 | Comunicados | Envio de comunicados aos moradores |
 | Portal do Morador | Acesso simplificado para moradores |
-| Usuários | Gestão de usuários e permissões |
+| Usuários | Gestão de usuários com Controle de Acesso Baseado em Papel (RBAC) |
 | Auditoria | Log de auditoria de ações |
 | Configurações | Configurações do sistema |
+
+## Níveis de Acesso (RBAC)
+
+O sistema possui 5 níveis de acesso distintos:
+
+- **Administrador**: Acesso total a todos os módulos e condomínios.
+- **Síndico**: Acesso total aos condomínios que gerencia.
+- **Gerente**: Acesso administrativo aos condomínios selecionados.
+- **Operador**: Acesso operacional básico.
+- **Morador**: Acesso restrito apenas à sua unidade e condomínio.
 
 ## Pré-requisitos
 
