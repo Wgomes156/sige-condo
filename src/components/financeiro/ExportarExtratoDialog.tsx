@@ -23,12 +23,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportExtratoCSV, exportExtratoPDF } from "@/lib/financeiroExportUtils";
 import { toast } from "sonner";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { cn } from "@/lib/utils";
 
 interface ExportarExtratoDialogProps {
   trigger?: React.ReactNode;
 }
 
 export function ExportarExtratoDialog({ trigger }: ExportarExtratoDialogProps) {
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [condominioId, setCondominioId] = useState<string>("todos");
@@ -127,19 +130,22 @@ export function ExportarExtratoDialog({ trigger }: ExportarExtratoDialogProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className={cn(
+        "max-h-[95vh] overflow-y-auto p-0",
+        isMobile ? "max-w-[95vw] rounded-lg" : "sm:max-w-md"
+      )}>
+        <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Exportar Extrato Financeiro</DialogTitle>
           <DialogDescription>
             Selecione o período e o condomínio para gerar o extrato com entradas e saídas.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 p-6">
           <div className="space-y-2">
             <Label>Condomínio</Label>
             <Select value={condominioId} onValueChange={setCondominioId}>
-              <SelectTrigger>
+              <SelectTrigger className="h-11 sm:h-10">
                 <SelectValue placeholder="Selecione o condomínio" />
               </SelectTrigger>
               <SelectContent>
@@ -160,6 +166,7 @@ export function ExportarExtratoDialog({ trigger }: ExportarExtratoDialogProps) {
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
+                className="h-11 sm:h-10"
               />
             </div>
             <div className="space-y-2">
@@ -168,14 +175,15 @@ export function ExportarExtratoDialog({ trigger }: ExportarExtratoDialogProps) {
                 type="date"
                 value={dataFim}
                 onChange={(e) => setDataFim(e.target.value)}
+                className="h-11 sm:h-10"
               />
             </div>
           </div>
 
-          <div className="flex gap-2 pt-4">
+          <div className="flex flex-col sm:flex-row gap-2 pt-4">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 h-12 sm:h-10 text-base sm:text-sm"
               onClick={() => handleExport("csv")}
               disabled={isLoading}
             >
@@ -187,7 +195,7 @@ export function ExportarExtratoDialog({ trigger }: ExportarExtratoDialogProps) {
               Exportar CSV
             </Button>
             <Button
-              className="flex-1"
+              className="flex-1 h-12 sm:h-10 text-base sm:text-sm font-bold"
               onClick={() => handleExport("pdf")}
               disabled={isLoading}
             >

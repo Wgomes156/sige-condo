@@ -106,21 +106,24 @@ export default function Usuarios() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Gestão de Usuários</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">Gestão de Usuários</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Gerencie usuários, papéis e permissões de acesso
           </p>
         </div>
-        <Button onClick={() => setShowNovoUsuario(true)}>
-          <UserPlus className="h-4 w-4 mr-2" />
+        <Button 
+          onClick={() => setShowNovoUsuario(true)}
+          className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-bold shadow-md"
+        >
+          <UserPlus className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
           Novo Usuário
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>

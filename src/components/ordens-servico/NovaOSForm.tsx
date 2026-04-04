@@ -39,6 +39,7 @@ import { useCondominios } from "@/hooks/useCondominios";
 import { useCreateOrdemServico, useUpdateOrdemServico, OrdemServico } from "@/hooks/useOrdensServico";
 import { useOperadores } from "@/hooks/useOperadores";
 import { AnexosSection } from "@/components/anexos/AnexosSection";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const formSchema = z.object({
   data_solicitacao: z.date({ required_error: "Data da solicitação é obrigatória" }),
@@ -72,6 +73,7 @@ interface NovaOSFormProps {
 }
 
 export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: NovaOSFormProps) {
+  const isMobile = useIsMobile();
   const { data: condominios = [] } = useCondominios();
   const { data: operadores = [] } = useOperadores();
   const createOS = useCreateOrdemServico();
@@ -161,30 +163,33 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className={cn(
+        "max-h-[95vh] overflow-y-auto sm:max-w-2xl p-4 sm:p-6",
+        isMobile ? "w-[95vw] rounded-lg" : "w-full"
+      )}>
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-primary">
             {isEditing ? "Editar Ordem de Serviço" : "Nova Ordem de Serviço"}
           </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Data da Solicitação */}
               <FormField
                 control={form.control}
                 name="data_solicitacao"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Data da Solicitação *</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Data da Solicitação *</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
                             variant="outline"
                             className={cn(
-                              "w-full pl-3 text-left font-normal",
+                              "w-full pl-3 text-left font-normal h-11 sm:h-10",
                               !field.value && "text-muted-foreground"
                             )}
                           >
@@ -217,9 +222,9 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
                 name="hora_solicitacao"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hora da Solicitação *</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Hora da Solicitação *</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input type="time" className="h-11 sm:h-10" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -233,29 +238,29 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
               name="solicitante"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Solicitante *</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Solicitante *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome do solicitante" {...field} />
+                    <Input placeholder="Nome do solicitante" className="h-11 sm:h-10" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Condomínio (seleção) */}
               <FormField
                 control={form.control}
                 name="condominio_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Selecionar Condomínio</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Selecionar Condomínio</FormLabel>
                     <Select
                       onValueChange={handleCondominioChange}
                       value={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 sm:h-10">
                           <SelectValue placeholder="Selecione um condomínio" />
                         </SelectTrigger>
                       </FormControl>
@@ -278,9 +283,9 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
                 name="condominio_nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome do Condomínio *</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Nome do Condomínio *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome do condomínio" {...field} />
+                      <Input placeholder="Nome do condomínio" className="h-11 sm:h-10" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -294,11 +299,11 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
               name="descricao_servico"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descrição Detalhada do Serviço *</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Descrição Detalhada do Serviço *</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Descreva detalhadamente o serviço solicitado..."
-                      className="min-h-[100px]"
+                      className="min-h-[100px] text-base sm:text-sm"
                       {...field}
                     />
                   </FormControl>
@@ -307,17 +312,17 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Status */}
               <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status da OS *</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Status da OS *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 sm:h-10">
                           <SelectValue placeholder="Selecione o status" />
                         </SelectTrigger>
                       </FormControl>
@@ -339,10 +344,10 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
                 name="prioridade"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Classificação da Prioridade *</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Classificação da Prioridade *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 sm:h-10">
                           <SelectValue placeholder="Selecione a prioridade" />
                         </SelectTrigger>
                       </FormControl>
@@ -364,13 +369,13 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
               name="atribuido_a"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Operador Responsável</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Operador Responsável</FormLabel>
                   <Select
                     onValueChange={(value) => field.onChange(value === "__none__" ? null : value)}
                     value={field.value || "__none__"}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11 sm:h-10">
                         <SelectValue placeholder="Selecione um operador" />
                       </SelectTrigger>
                     </FormControl>
@@ -394,14 +399,14 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
               name="data_atendimento"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Data do Atendimento</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Data do Atendimento</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full pl-3 text-left font-normal",
+                            "w-full pl-3 text-left font-normal h-11 sm:h-10",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -434,11 +439,11 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
               name="observacoes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Observações Adicionais</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Observações Adicionais</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Observações adicionais..."
-                      className="min-h-[80px]"
+                      className="min-h-[80px] text-base sm:text-sm"
                       {...field}
                     />
                   </FormControl>
@@ -449,22 +454,26 @@ export function NovaOSForm({ open, onOpenChange, ordemServico, prefillData }: No
 
             {/* Anexos - apenas quando editando */}
             {isEditing && ordemServico && (
-              <AnexosSection
-                entidadeTipo="ordem_servico"
-                entidadeId={ordemServico.id}
-              />
+              <div className="pt-2">
+                <AnexosSection
+                  entidadeTipo="ordem_servico"
+                  entidadeId={ordemServico.id}
+                />
+              </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4">
               <Button
                 type="button"
                 variant="outline"
+                className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm"
                 onClick={() => onOpenChange(false)}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
+                className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-bold bg-primary"
                 disabled={createOS.isPending || updateOS.isPending}
               >
                 {createOS.isPending || updateOS.isPending

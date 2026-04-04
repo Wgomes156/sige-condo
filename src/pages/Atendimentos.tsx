@@ -49,22 +49,23 @@ export default function Atendimentos() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Atendimentos</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Atendimentos</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Gerencie todos os atendimentos do sistema
           </p>
         </div>
         {canCreate && (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => setIsAssistenteOpen(true)}
             >
               <Bot className="h-4 w-4 mr-2" />
               Assistente IA
             </Button>
             <Button 
-              className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              className="w-full sm:w-auto bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sm"
               onClick={() => setIsFormOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />

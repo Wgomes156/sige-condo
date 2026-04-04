@@ -298,7 +298,7 @@ export default function DashboardCondominio() {
           <CardTitle className="text-lg">Informações Gerais</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex items-start gap-3">
               <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
@@ -354,7 +354,7 @@ export default function DashboardCondominio() {
           <Headphones className="h-5 w-5" />
           Atendimentos
         </h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard
             title="Atendimentos Hoje"
             value={stats?.totalHoje ?? 0}
@@ -401,7 +401,7 @@ export default function DashboardCondominio() {
           <Home className="h-5 w-5" />
           Unidades
         </h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <StatCard
             title="Total de Unidades"
             value={stats?.totalUnidades ?? 0}
@@ -466,7 +466,7 @@ export default function DashboardCondominio() {
           <Wrench className="h-5 w-5" />
           Ordens de Serviço
         </h3>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
           <StatCard
             title="OS Abertas/Em Andamento"
             value={stats?.osAbertas ?? 0}
@@ -489,7 +489,7 @@ export default function DashboardCondominio() {
       {/* Gráficos de Atendimentos */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Análise de Atendimentos</h3>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
           <PieChartCard
             title="Atendimentos por Status"
             data={statusData ?? []}
@@ -508,7 +508,7 @@ export default function DashboardCondominio() {
       {/* Gráficos de Unidades */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Análise de Unidades</h3>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
           <BarChartCard
             title="Unidades por Situação"
             data={situacaoData ?? []}
@@ -527,7 +527,7 @@ export default function DashboardCondominio() {
       {/* Gráfico de OS */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Análise de Ordens de Serviço</h3>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
           <BarChartCard
             title="OS por Status"
             data={osData ?? []}

@@ -34,6 +34,8 @@ import { useCondominios } from "@/hooks/useCondominios";
 import { useCategorias, useCreateTransacao } from "@/hooks/useFinanceiro";
 import { useAuth } from "@/hooks/useAuth";
 import { GerenciarCategoriasDialog } from "./GerenciarCategoriasDialog";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   tipo: z.enum(["receita", "despesa"]),
@@ -63,6 +65,7 @@ export function NovaTransacaoForm({
   onOpenChange,
   tipoInicial = "receita",
 }: NovaTransacaoFormProps) {
+  const isMobile = useIsMobile();
   const { data: condominios } = useCondominios();
   const { profile } = useAuth();
   const createTransacao = useCreateTransacao();
@@ -121,41 +124,44 @@ export function NovaTransacaoForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nova Transação</DialogTitle>
+      <DialogContent className={cn(
+        "max-h-[95vh] overflow-y-auto sm:max-w-2xl p-4 sm:p-6",
+        isMobile ? "w-[95vw] rounded-lg" : "w-full"
+      )}>
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-primary">Nova Transação</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
             <FormField
               control={form.control}
               name="tipo"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de Transação</FormLabel>
+                <FormItem className="space-y-3">
+                  <FormLabel className="text-sm font-semibold">Tipo de Transação</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={(v) =>
                         handleTipoChange(v as "receita" | "despesa")
                       }
                       defaultValue={field.value}
-                      className="flex gap-4"
+                      className="flex gap-6"
                     >
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 bg-emerald-50 px-3 py-2 rounded-md border border-emerald-100 flex-1 sm:flex-none justify-center sm:justify-start">
                         <RadioGroupItem value="receita" id="receita" />
                         <Label
                           htmlFor="receita"
-                          className="cursor-pointer text-emerald-600 font-medium"
+                          className="cursor-pointer text-emerald-600 font-bold text-base sm:text-sm"
                         >
                           Receita
                         </Label>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 bg-red-50 px-3 py-2 rounded-md border border-red-100 flex-1 sm:flex-none justify-center sm:justify-start">
                         <RadioGroupItem value="despesa" id="despesa" />
                         <Label
                           htmlFor="despesa"
-                          className="cursor-pointer text-red-600 font-medium"
+                          className="cursor-pointer text-red-600 font-bold text-base sm:text-sm"
                         >
                           Despesa
                         </Label>
@@ -167,19 +173,19 @@ export function NovaTransacaoForm({
               )}
             />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="condominio_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Condomínio *</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Condomínio *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 sm:h-10">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
@@ -201,13 +207,13 @@ export function NovaTransacaoForm({
                 name="categoria_id"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Categoria</FormLabel>
+                    <div className="flex items-center justify-between mb-1">
+                      <FormLabel className="text-sm font-semibold">Categoria</FormLabel>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-6 px-2 text-xs"
+                        className="h-7 px-2 text-[10px] uppercase font-bold text-primary hover:text-primary hover:bg-primary/10"
                         onClick={() => setShowGerenciarCategorias(true)}
                       >
                         <Settings className="h-3 w-3 mr-1" />
@@ -219,7 +225,7 @@ export function NovaTransacaoForm({
                       value={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 sm:h-10">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
@@ -248,24 +254,24 @@ export function NovaTransacaoForm({
               name="descricao"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descrição *</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Descrição *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Taxa condominial Janeiro/2026" {...field} />
+                    <Input placeholder="Ex: Taxa condominial Janeiro/2026" className="h-11 sm:h-10" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="valor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor (R$) *</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Valor (R$) *</FormLabel>
                     <FormControl>
-                      <Input placeholder="0,00" {...field} />
+                      <Input placeholder="0,00" className="h-11 sm:h-10 text-lg font-bold sm:text-sm" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -277,9 +283,9 @@ export function NovaTransacaoForm({
                 name="data_vencimento"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Data de Vencimento *</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Data de Vencimento *</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" className="h-11 sm:h-10" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -287,15 +293,15 @@ export function NovaTransacaoForm({
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="unidade"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Unidade/Apartamento</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Unidade/Apartamento</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Apto 101" {...field} />
+                      <Input placeholder="Ex: Apto 101" className="h-11 sm:h-10" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -307,9 +313,9 @@ export function NovaTransacaoForm({
                 name="morador_nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome do Morador</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Nome do Morador</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome do responsável" {...field} />
+                      <Input placeholder="Nome do responsável" className="h-11 sm:h-10" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -322,9 +328,9 @@ export function NovaTransacaoForm({
               name="documento"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Documento/Referência</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Documento/Referência</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: NF-12345" {...field} />
+                    <Input placeholder="Ex: NF-12345" className="h-11 sm:h-10" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -335,13 +341,13 @@ export function NovaTransacaoForm({
               control={form.control}
               name="recorrente"
               render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                <FormItem className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">
+                    <FormLabel className="text-base sm:text-sm font-bold">
                       Transação Recorrente
                     </FormLabel>
-                    <p className="text-sm text-muted-foreground">
-                      Marque se esta transação se repete periodicamente
+                    <p className="text-sm sm:text-xs text-muted-foreground">
+                      Repete periodicamente
                     </p>
                   </div>
                   <FormControl>
@@ -360,10 +366,10 @@ export function NovaTransacaoForm({
                 name="recorrencia_tipo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo de Recorrência</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Tipo de Recorrência</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 sm:h-10">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
@@ -385,10 +391,11 @@ export function NovaTransacaoForm({
               name="observacoes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Observações</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Observações</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Observações adicionais..."
+                      className="min-h-[80px] text-base sm:text-sm"
                       {...field}
                     />
                   </FormControl>
@@ -397,26 +404,31 @@ export function NovaTransacaoForm({
               )}
             />
 
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4">
               <Button
                 type="button"
                 variant="outline"
+                className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm"
                 onClick={() => onOpenChange(false)}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createTransacao.isPending}>
-                {createTransacao.isPending ? "Salvando..." : "Salvar"}
+              <Button 
+                type="submit" 
+                className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-bold active:scale-95 transition-transform"
+                disabled={createTransacao.isPending}
+              >
+                {createTransacao.isPending ? "Salvando..." : "Salvar Transação"}
               </Button>
             </div>
           </form>
         </Form>
-
-        <GerenciarCategoriasDialog
-          open={showGerenciarCategorias}
-          onOpenChange={setShowGerenciarCategorias}
-        />
       </DialogContent>
+
+      <GerenciarCategoriasDialog
+        open={showGerenciarCategorias}
+        onOpenChange={setShowGerenciarCategorias}
+      />
     </Dialog>
   );
 }

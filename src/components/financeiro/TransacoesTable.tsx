@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -120,14 +121,97 @@ export function TransacoesTable({
   return (
     <>
       <div className="space-y-4">
-        <div className="rounded-md border">
+        {/* View de Cards para Mobile (< 640px) */}
+        <div className="grid grid-cols-1 gap-4 sm:hidden">
+          {paginatedItems.map((item) => {
+            const status = statusConfig[item.status] || statusConfig.pendente;
+            return (
+              <Card key={item.id} className="overflow-hidden border-l-4 border-l-primary">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {format(new Date(item.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                      <h3 className="font-bold text-base line-clamp-1">{item.descricao}</h3>
+                    </div>
+                    <Badge variant={status.variant} className="whitespace-nowrap">
+                      {status.label}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+                    <div>
+                      <span className="text-muted-foreground block text-xs">Condomínio</span>
+                      <span className="font-medium truncate block">{item.condominios?.nome || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-xs">Categoria</span>
+                      <div className="flex items-center gap-1.5 font-medium">
+                        {item.categorias_financeiras && (
+                          <div
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: item.categorias_financeiras.cor }}
+                          />
+                        )}
+                        <span className="truncate">{item.categorias_financeiras?.nome || "-"}</span>
+                      </div>
+                    </div>
+                    <div className="col-span-2 mt-1">
+                      <span className="text-muted-foreground block text-xs">Valor</span>
+                      <span className={`text-lg font-bold ${
+                        item.tipo === "receita" ? "text-emerald-600" : "text-red-600"
+                      }`}>
+                        {item.tipo === "despesa" ? "- " : ""}
+                        {formatCurrency(Number(item.valor))}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3 border-t">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex-1">
+                          Ações <MoreHorizontal className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        {onViewDetails && (
+                          <DropdownMenuItem onClick={() => onViewDetails(item)}>
+                            <Eye className="h-4 w-4 mr-2" /> Ver detalhes
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => setEditingTransacao(item)}>
+                          <Pencil className="h-4 w-4 mr-2" /> Editar
+                        </DropdownMenuItem>
+                        {item.status !== "pago" && item.status !== "cancelado" && (
+                          <DropdownMenuItem onClick={() => handleMarcarPago(item.id)}>
+                            <Check className="h-4 w-4 mr-2" /> Marcar como pago
+                          </DropdownMenuItem>
+                        )}
+                        {isAdmin && (
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(item.id)}>
+                            <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* View de Tabela para Tablet e Desktop (>= 640px) */}
+        <div className="rounded-md border hidden sm:block overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Descrição</TableHead>
-                <TableHead>Condomínio</TableHead>
-                <TableHead>Categoria</TableHead>
+                <TableHead className="hidden lg:table-cell">Condomínio</TableHead>
+                <TableHead className="hidden md:table-cell">Categoria</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[70px]">Ações</TableHead>
@@ -139,7 +223,7 @@ export function TransacoesTable({
 
                 return (
                   <TableRow key={item.id}>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {format(new Date(item.data_vencimento), "dd/MM/yyyy", {
                         locale: ptBR,
                       })}
@@ -147,10 +231,10 @@ export function TransacoesTable({
                     <TableCell className="max-w-[200px] truncate font-medium">
                       {item.descricao}
                     </TableCell>
-                    <TableCell className="max-w-[150px] truncate">
+                    <TableCell className="max-w-[150px] truncate hidden lg:table-cell">
                       {item.condominios?.nome || "-"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {item.categorias_financeiras ? (
                         <div className="flex items-center gap-2">
                           <div
@@ -168,7 +252,7 @@ export function TransacoesTable({
                       )}
                     </TableCell>
                     <TableCell
-                      className={`text-right font-medium ${
+                      className={`text-right font-medium whitespace-nowrap ${
                         item.tipo === "receita"
                           ? "text-emerald-600"
                           : "text-red-600"

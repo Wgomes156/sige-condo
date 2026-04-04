@@ -34,6 +34,8 @@ import { useUpdateAtendimento, type Atendimento } from "@/hooks/useAtendimentos"
 import { useAtendimentoHistorico, useCreateAtendimentoHistorico } from "@/hooks/useAtendimentoHistorico";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { cn } from "@/lib/utils";
 
 const atendimentoSchema = z.object({
   data: z.string().min(1, "Data é obrigatória"),
@@ -109,6 +111,7 @@ const getHistoricoStatusColor = (status: string) => {
 };
 
 export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: EditarAtendimentoDialogProps) {
+  const isMobile = useIsMobile();
   const updateAtendimento = useUpdateAtendimento();
   const { data: historico, isLoading: loadingHistorico } = useAtendimentoHistorico(atendimento?.id);
   const createHistorico = useCreateAtendimentoHistorico();
@@ -198,16 +201,22 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: Edi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh]">
-        <DialogHeader>
+      <DialogContent className={cn(
+        "max-h-[95vh] overflow-hidden p-0",
+        isMobile ? "max-w-[95vw] rounded-lg" : "max-w-3xl"
+      )}>
+        <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle className="text-xl font-bold text-primary">
             Editar Atendimento
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
+        <ScrollArea className={cn(
+          "px-6 py-4 outline-none",
+          isMobile ? "max-h-[calc(95vh-130px)]" : "max-h-[calc(90vh-120px)]"
+        )}>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
               {/* Seção: Dados do Atendimento */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
@@ -453,7 +462,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: Edi
 
                 {showHistoricoForm && (
                   <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="text-sm font-medium">Data *</label>
                         <Input
@@ -545,25 +554,29 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: Edi
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={updateAtendimento.isPending}
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                >
-                  {updateAtendimento.isPending ? "Salvando..." : "Salvar Alterações"}
-                </Button>
-              </div>
             </form>
           </Form>
         </ScrollArea>
+        
+        {/* Botões fixos no rodapé */}
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 p-6 border-t bg-background">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto h-12 sm:h-10 text-base"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            className="w-full sm:w-auto h-12 sm:h-10 text-base font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-md active:scale-95 transition-all"
+            onClick={form.handleSubmit(onSubmit)}
+            disabled={updateAtendimento.isPending}
+          >
+            {updateAtendimento.isPending ? "Salvando..." : "Salvar Alterações"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -44,7 +44,7 @@ import {
   type StatusFinanceiroUnidade,
 } from "@/hooks/useUnidadesCompleto";
 import { toast } from "sonner";
-import { Building2, Car, PawPrint, Users, UserCheck, Key, ParkingSquare, FileText, User, Wallet, ChevronRight } from "lucide-react";
+import { Building2, Car, PawPrint, Users, UserCheck, Key, ParkingSquare, FileText, User, Wallet, ChevronRight, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCpf, formatTelefone, validateCpf, validateEmail, validateTelefone } from "@/lib/masks";
 import { VeiculosInlineForm } from "./forms/VeiculosInlineForm";
@@ -53,6 +53,7 @@ import { MoradoresInlineForm } from "./forms/MoradoresInlineForm";
 import { VisitantesInlineForm } from "./forms/VisitantesInlineForm";
 import { AcessosInlineForm } from "./forms/AcessosInlineForm";
 import { VagasInlineForm } from "./forms/VagasInlineForm";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface UnidadeFormDialogProps {
   open: boolean;
@@ -65,6 +66,7 @@ export function UnidadeFormDialog({
   onOpenChange,
   unidadeId,
 }: UnidadeFormDialogProps) {
+  const isMobile = useIsMobile();
   const isEditing = !!unidadeId;
   const { data: unidade } = useUnidadeById(unidadeId);
   const { data: condominios } = useCondominios();
@@ -333,33 +335,48 @@ export function UnidadeFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
+      <DialogContent className={cn(
+        "max-w-4xl max-h-[95vh] p-0 overflow-hidden",
+        isMobile ? "w-[100vw] h-[100dvh] rounded-none border-none" : ""
+      )}>
+        <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+            <Building2 className="h-5 w-5 text-primary" />
             {isEditing ? "Editar Unidade" : "Nova Unidade"}
           </DialogTitle>
-          <DialogDescription>
-            Preencha os dados da unidade. Após salvar, você poderá adicionar veículos, animais e outros dados.
+          <DialogDescription className="text-xs sm:text-sm">
+            Preencha os dados da unidade. Após salvar, poderá adicionar vínculos.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="identificacao" className="flex gap-4 max-h-[65vh]" orientation="vertical">
-          {/* Navegação Lateral Agrupada */}
-          <div className="w-44 flex-shrink-0 border-r pr-2">
-            <ScrollArea className="h-full">
-              <div className="space-y-4 py-2">
+        <Tabs 
+          defaultValue="identificacao" 
+          className={cn("flex flex-col sm:flex-row gap-4 h-full", isMobile ? "max-h-[75vh]" : "max-h-[65vh]")} 
+          orientation={isMobile ? "horizontal" : "vertical"}
+        >
+          {/* Navegação Lateral / Superior no Mobile */}
+          <div className={cn(
+            "flex-shrink-0 border-b sm:border-b-0 sm:border-r",
+            isMobile ? "w-full overflow-x-auto scrollbar-hide -mx-4 px-4 sticky top-0 bg-background z-10" : "w-44 pr-2"
+          )}>
+            <ScrollArea className={cn(isMobile ? "w-max" : "h-full")}>
+              <div className={cn(
+                "py-2 flex",
+                isMobile ? "flex-row gap-4 h-12 items-center" : "flex-col space-y-4"
+              )}>
                 {/* Grupo: Dados Básicos */}
-                <div>
-                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 px-2">
-                    Dados Básicos
-                  </h4>
-                  <TabsList className="flex flex-col h-auto bg-transparent gap-0.5">
-                    <TabsTrigger value="identificacao" className="w-full justify-start text-xs h-8 px-2">
+                <div className={cn(isMobile ? "flex flex-row gap-1" : "")}>
+                  {!isMobile && (
+                    <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 px-2">
+                      Dados Básicos
+                    </h4>
+                  )}
+                  <TabsList className={cn("bg-transparent gap-0.5", isMobile ? "flex-row h-10" : "flex-col h-auto")}>
+                    <TabsTrigger value="identificacao" className={cn("justify-start text-xs h-8 px-2 whitespace-nowrap", isMobile ? "rounded-full border" : "w-full")}>
                       <Building2 className="h-3.5 w-3.5 mr-2" />
                       Identificação
                     </TabsTrigger>
-                    <TabsTrigger value="observacoes" className="w-full justify-start text-xs h-8 px-2">
+                    <TabsTrigger value="observacoes" className={cn("justify-start text-xs h-8 px-2 whitespace-nowrap", isMobile ? "rounded-full border" : "w-full")}>
                       <FileText className="h-3.5 w-3.5 mr-2" />
                       Observações
                     </TabsTrigger>
@@ -367,103 +384,70 @@ export function UnidadeFormDialog({
                 </div>
 
                 {/* Grupo: Pessoas */}
-                <div>
-                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 px-2">
-                    Pessoas
-                  </h4>
-                  <TabsList className="flex flex-col h-auto bg-transparent gap-0.5">
-                    <TabsTrigger value="proprietario" className={cn("w-full justify-start text-xs h-8 px-2 relative", (cpfErrors.proprietario_cpf || emailErrors.proprietario_email || telefoneErrors.proprietario_telefone) && "pr-5")}>
+                <div className={cn(isMobile ? "flex flex-row gap-1" : "")}>
+                  {!isMobile && (
+                    <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 px-2">
+                      Pessoas
+                    </h4>
+                  )}
+                  <TabsList className={cn("bg-transparent gap-0.5", isMobile ? "flex-row h-10" : "flex-col h-auto")}>
+                    <TabsTrigger value="proprietario" className={cn("justify-start text-xs h-8 px-2 relative whitespace-nowrap", isMobile ? "rounded-full border" : "w-full", (cpfErrors.proprietario_cpf || emailErrors.proprietario_email || telefoneErrors.proprietario_telefone) && "pr-5")}>
                       <User className="h-3.5 w-3.5 mr-2" />
                       Proprietário
-                      {(cpfErrors.proprietario_cpf || emailErrors.proprietario_email || telefoneErrors.proprietario_telefone) && (
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-destructive" />
-                      )}
                     </TabsTrigger>
-                    <TabsTrigger value="inquilino" className={cn("w-full justify-start text-xs h-8 px-2 relative", (cpfErrors.inquilino_cpf || emailErrors.inquilino_email || telefoneErrors.inquilino_telefone) && "pr-5")}>
+                    <TabsTrigger value="inquilino" className={cn("justify-start text-xs h-8 px-2 relative whitespace-nowrap", isMobile ? "rounded-full border" : "w-full", (cpfErrors.inquilino_cpf || emailErrors.inquilino_email || telefoneErrors.inquilino_telefone) && "pr-5")}>
                       <User className="h-3.5 w-3.5 mr-2" />
                       Inquilino
-                      {(cpfErrors.inquilino_cpf || emailErrors.inquilino_email || telefoneErrors.inquilino_telefone) && (
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-destructive" />
-                      )}
                     </TabsTrigger>
-                    <TabsTrigger value="financeiro" className={cn("w-full justify-start text-xs h-8 px-2 relative", (cpfErrors.resp_financeiro_cpf || emailErrors.resp_financeiro_email || telefoneErrors.resp_financeiro_telefone) && "pr-5")}>
+                    <TabsTrigger value="financeiro" className={cn("justify-start text-xs h-8 px-2 relative whitespace-nowrap", isMobile ? "rounded-full border" : "w-full", (cpfErrors.resp_financeiro_cpf || emailErrors.resp_financeiro_email || telefoneErrors.resp_financeiro_telefone) && "pr-5")}>
                       <Wallet className="h-3.5 w-3.5 mr-2" />
-                      Resp. Financeiro
-                      {(cpfErrors.resp_financeiro_cpf || emailErrors.resp_financeiro_email || telefoneErrors.resp_financeiro_telefone) && (
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-destructive" />
-                      )}
+                      Financeiro
                     </TabsTrigger>
-                    <TabsTrigger value="moradores" className="w-full justify-start text-xs h-8 px-2">
+                    <TabsTrigger value="moradores" className={cn("justify-start text-xs h-8 px-2 whitespace-nowrap", isMobile ? "rounded-full border" : "w-full")}>
                       <Users className="h-3.5 w-3.5 mr-2" />
                       Moradores
-                      {moradores && moradores.length > 0 && (
-                        <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
-                          {moradores.length}
-                        </span>
-                      )}
                     </TabsTrigger>
-                    <TabsTrigger value="visitantes" className="w-full justify-start text-xs h-8 px-2">
+                    <TabsTrigger value="visitantes" className={cn("justify-start text-xs h-8 px-2 whitespace-nowrap", isMobile ? "rounded-full border" : "w-full")}>
                       <UserCheck className="h-3.5 w-3.5 mr-2" />
                       Visitantes
-                      {visitantes && visitantes.length > 0 && (
-                        <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
-                          {visitantes.length}
-                        </span>
-                      )}
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
                 {/* Grupo: Patrimônio */}
-                <div>
-                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 px-2">
-                    Patrimônio
-                  </h4>
-                  <TabsList className="flex flex-col h-auto bg-transparent gap-0.5">
-                    <TabsTrigger value="veiculos" className="w-full justify-start text-xs h-8 px-2">
+                <div className={cn(isMobile ? "flex flex-row gap-1" : "")}>
+                  {!isMobile && (
+                    <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 px-2">
+                      Patrimônio
+                    </h4>
+                  )}
+                  <TabsList className={cn("bg-transparent gap-0.5", isMobile ? "flex-row h-10" : "flex-col h-auto")}>
+                    <TabsTrigger value="veiculos" className={cn("justify-start text-xs h-8 px-2 whitespace-nowrap", isMobile ? "rounded-full border" : "w-full")}>
                       <Car className="h-3.5 w-3.5 mr-2" />
                       Veículos
-                      {veiculos && veiculos.length > 0 && (
-                        <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
-                          {veiculos.length}
-                        </span>
-                      )}
                     </TabsTrigger>
-                    <TabsTrigger value="animais" className="w-full justify-start text-xs h-8 px-2">
+                    <TabsTrigger value="animais" className={cn("justify-start text-xs h-8 px-2 whitespace-nowrap", isMobile ? "rounded-full border" : "w-full")}>
                       <PawPrint className="h-3.5 w-3.5 mr-2" />
                       Animais
-                      {animais && animais.length > 0 && (
-                        <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
-                          {animais.length}
-                        </span>
-                      )}
                     </TabsTrigger>
-                    <TabsTrigger value="vagas" className="w-full justify-start text-xs h-8 px-2">
+                    <TabsTrigger value="vagas" className={cn("justify-start text-xs h-8 px-2 whitespace-nowrap", isMobile ? "rounded-full border" : "w-full")}>
                       <ParkingSquare className="h-3.5 w-3.5 mr-2" />
                       Vagas
-                      {vagas && vagas.length > 0 && (
-                        <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
-                          {vagas.length}
-                        </span>
-                      )}
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
                 {/* Grupo: Segurança */}
-                <div>
-                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 px-2">
-                    Segurança
-                  </h4>
-                  <TabsList className="flex flex-col h-auto bg-transparent gap-0.5">
-                    <TabsTrigger value="acessos" className="w-full justify-start text-xs h-8 px-2">
+                <div className={cn(isMobile ? "flex flex-row gap-1" : "")}>
+                  {!isMobile && (
+                    <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 px-2">
+                      Segurança
+                    </h4>
+                  )}
+                  <TabsList className={cn("bg-transparent gap-0.5", isMobile ? "flex-row h-10" : "flex-col h-auto")}>
+                    <TabsTrigger value="acessos" className={cn("justify-start text-xs h-8 px-2 whitespace-nowrap", isMobile ? "rounded-full border" : "w-full")}>
                       <Key className="h-3.5 w-3.5 mr-2" />
                       Acessos
-                      {acessos && acessos.length > 0 && (
-                        <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
-                          {acessos.length}
-                        </span>
-                      )}
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -472,8 +456,8 @@ export function UnidadeFormDialog({
           </div>
 
           {/* Área de Conteúdo */}
-          <ScrollArea className="flex-1 pr-4">
-            <TabsContent value="identificacao" className="space-y-4 mt-0 data-[state=active]:mt-0">
+          <ScrollArea className="flex-1 p-2 sm:p-0">
+            <TabsContent value="identificacao" className="space-y-4 mt-0 outline-none">
               {/* Condomínio e Código */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">

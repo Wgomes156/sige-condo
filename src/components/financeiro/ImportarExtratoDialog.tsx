@@ -35,6 +35,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { cn } from "@/lib/utils";
 
 interface ImportarExtratoDialogProps {
   trigger?: React.ReactNode;
@@ -53,6 +55,7 @@ interface TransacaoImportada {
 }
 
 export function ImportarExtratoDialog({ trigger }: ImportarExtratoDialogProps) {
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [condominioId, setCondominioId] = useState<string>("");
@@ -400,20 +403,25 @@ export function ImportarExtratoDialog({ trigger }: ImportarExtratoDialogProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh]">
-        <DialogHeader>
+      <DialogContent className={cn(
+        "max-h-[95vh] overflow-hidden p-0 flex flex-col",
+        isMobile ? "max-w-[95vw] rounded-lg" : "sm:max-w-3xl"
+      )}>
+        <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Importar Extrato Financeiro</DialogTitle>
           <DialogDescription>
             Importe transações financeiras a partir de um arquivo CSV e edite antes de salvar.
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+
         {importStep === "upload" && (
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Condomínio *</Label>
               <Select value={condominioId} onValueChange={setCondominioId}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11 sm:h-10">
                   <SelectValue placeholder="Selecione o condomínio" />
                 </SelectTrigger>
                 <SelectContent>
@@ -483,7 +491,12 @@ export function ImportarExtratoDialog({ trigger }: ImportarExtratoDialogProps) {
                   </Badge>
                 )}
               </div>
-              <Button variant="outline" size="sm" onClick={handleAddTransacao}>
+              <Button 
+                variant="outline" 
+                size={isMobile ? "default" : "sm"} 
+                onClick={handleAddTransacao}
+                className={isMobile ? "h-11 shadow-sm" : ""}
+              >
                 + Adicionar Linha
               </Button>
             </div>
@@ -616,11 +629,19 @@ export function ImportarExtratoDialog({ trigger }: ImportarExtratoDialogProps) {
               </Table>
             </ScrollArea>
 
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={resetState}>
+            <div className="flex flex-col sm:flex-row gap-2 justify-end pt-4">
+              <Button 
+                variant="outline" 
+                onClick={resetState}
+                className="h-12 sm:h-10 text-base sm:text-sm"
+              >
                 Voltar
               </Button>
-              <Button onClick={handleImport} disabled={isLoading || validCount === 0}>
+              <Button 
+                onClick={handleImport} 
+                disabled={isLoading || validCount === 0}
+                className="h-12 sm:h-10 text-base sm:text-sm font-bold shadow-sm"
+              >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
@@ -633,7 +654,7 @@ export function ImportarExtratoDialog({ trigger }: ImportarExtratoDialogProps) {
         )}
 
         {importStep === "done" && (
-          <div className="space-y-4 py-8 text-center">
+          <div className="space-y-4 py-8 text-center px-6">
             <CheckCircle2 className="h-16 w-16 mx-auto text-emerald-600" />
             <div>
               <p className="text-lg font-semibold">Importação concluída!</p>
@@ -645,9 +666,15 @@ export function ImportarExtratoDialog({ trigger }: ImportarExtratoDialogProps) {
                 As transações aparecem na tabela principal onde podem ser editadas.
               </p>
             </div>
-            <Button onClick={() => setOpen(false)}>Fechar</Button>
+            <Button 
+              onClick={() => setOpen(false)}
+              className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-bold"
+            >
+              Fechar
+            </Button>
           </div>
         )}
+      </div>
       </DialogContent>
     </Dialog>
   );

@@ -161,13 +161,13 @@ export default function Dashboard() {
   const primeiroNome = profile?.nome?.split(" ")[0] || "Usuário";
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
             Olá, {primeiroNome}! 👋
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             {selectedCondominio !== "todos" && selectedCondominioNome 
               ? `Dados filtrados para: ${selectedCondominioNome}`
               : "Visão geral do sistema de atendimentos"}
@@ -177,7 +177,7 @@ export default function Dashboard() {
         {/* Seletor de Condomínio */}
         <div className="flex items-center gap-2">
           <Select value={selectedCondominio} onValueChange={handleCondominioChange}>
-            <SelectTrigger className="w-[280px]">
+            <SelectTrigger className="w-full sm:w-[280px]">
               <Building2 className="mr-2 h-4 w-4" />
               <SelectValue placeholder="Selecione um condomínio" />
             </SelectTrigger>
@@ -203,7 +203,7 @@ export default function Dashboard() {
       </div>
 
       {/* Indicadores rápidos */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="OS em Andamento"
           value={stats?.emAndamento ?? 0}
@@ -235,7 +235,7 @@ export default function Dashboard() {
       </div>
 
       {/* Gráficos */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <PieChartCard
           title="Atendimentos por Status"
           data={statusData ?? []}

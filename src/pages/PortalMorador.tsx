@@ -38,14 +38,17 @@ export default function PortalMorador() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Portal do Morador</h1>
-            <p className="text-muted-foreground">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary">Portal do Morador</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Acompanhe seus boletos, comunicados e abra chamados
             </p>
           </div>
-          <Button onClick={() => setShowChamadoForm(true)}>
-            <MessageSquarePlus className="mr-2 h-4 w-4" />
+          <Button 
+            onClick={() => setShowChamadoForm(true)}
+            className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-bold shadow-md"
+          >
+            <MessageSquarePlus className="mr-2 h-5 w-5 sm:h-4 sm:w-4" />
             Novo Chamado
           </Button>
         </div>
@@ -78,7 +81,7 @@ export default function PortalMorador() {
         )}
 
         {/* Cards de Resumo */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Minhas Unidades</CardTitle>

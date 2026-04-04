@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -82,23 +83,77 @@ export function AtendimentosTable({ filters, onView, onEdit }: AtendimentosTable
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
         {atendimentos.length} atendimento{atendimentos.length !== 1 ? "s" : ""} encontrado{atendimentos.length !== 1 ? "s" : ""}
       </div>
-      <div className="rounded-md border">
+
+      {/* View de Cards para Mobile (< 640px) */}
+      <div className="grid grid-cols-1 gap-4 sm:hidden">
+        {atendimentos.map((atendimento) => (
+          <Card key={atendimento.id} className="overflow-hidden border-l-4 border-l-primary">
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {format(new Date(atendimento.data), "dd/MM/yyyy", { locale: ptBR })} - {atendimento.hora?.slice(0, 5)}
+                  </p>
+                  <h3 className="font-bold text-lg">{atendimento.cliente_nome}</h3>
+                </div>
+                <Badge variant="outline" className={`${getStatusColor(atendimento.status)} whitespace-nowrap`}>
+                  {atendimento.status}
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+                <div>
+                  <span className="text-muted-foreground block text-xs">Condomínio</span>
+                  <span className="font-medium truncate block">{atendimento.condominio_nome}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-xs">Motivo</span>
+                  <span className="font-medium truncate block">{atendimento.motivo}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-xs">Telefone</span>
+                  <span className="font-medium">{atendimento.cliente_telefone}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-xs">Canal</span>
+                  <span className="font-medium">{atendimento.canal}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <Button variant="outline" size="sm" onClick={() => onView?.(atendimento)} className="flex-1">
+                  <Eye className="h-4 w-4 mr-2" /> Detalhes
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => onEdit?.(atendimento)} className="flex-1">
+                  <Pencil className="h-4 w-4 mr-2" /> Editar
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setAtendimentoToDelete(atendimento)} className="text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* View de Tabela para Tablet e Desktop (>= 640px) */}
+      <div className="rounded-md border hidden sm:block overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Data/Hora</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Telefone</TableHead>
+              <TableHead className="hidden lg:table-cell">Telefone</TableHead>
               <TableHead>Condomínio</TableHead>
-              <TableHead>Canal</TableHead>
+              <TableHead className="hidden md:table-cell">Canal</TableHead>
               <TableHead>Motivo</TableHead>
-              <TableHead>Operador</TableHead>
+              <TableHead className="hidden xl:table-cell">Operador</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[130px]">Ações</TableHead>
+              <TableHead className="w-[100px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -115,23 +170,24 @@ export function AtendimentosTable({ filters, onView, onEdit }: AtendimentosTable
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{atendimento.cliente_nome}</TableCell>
-                <TableCell>{atendimento.cliente_telefone}</TableCell>
-                <TableCell>{atendimento.condominio_nome}</TableCell>
-                <TableCell>{atendimento.canal}</TableCell>
+                <TableCell className="hidden lg:table-cell">{atendimento.cliente_telefone}</TableCell>
+                <TableCell className="truncate max-w-[150px]">{atendimento.condominio_nome}</TableCell>
+                <TableCell className="hidden md:table-cell">{atendimento.canal}</TableCell>
                 <TableCell>{atendimento.motivo}</TableCell>
-                <TableCell>{atendimento.operador_nome}</TableCell>
+                <TableCell className="hidden xl:table-cell">{atendimento.operador_nome}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className={getStatusColor(atendimento.status)}>
                     {atendimento.status}
                   </Badge>
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => onView?.(atendimento)}
                       title="Visualizar"
+                      className="h-8 w-8"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -140,6 +196,7 @@ export function AtendimentosTable({ filters, onView, onEdit }: AtendimentosTable
                       size="icon"
                       onClick={() => onEdit?.(atendimento)}
                       title="Editar"
+                      className="h-8 w-8"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -148,7 +205,7 @@ export function AtendimentosTable({ filters, onView, onEdit }: AtendimentosTable
                       size="icon"
                       onClick={() => setAtendimentoToDelete(atendimento)}
                       title="Excluir"
-                      className="text-destructive hover:text-destructive"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

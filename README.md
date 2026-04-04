@@ -139,6 +139,45 @@ Sempre que fizer mudanças no código, repita o processo:
 > [!NOTE]
 > O arquivo `.htaccess` (necessário para o roteamento do React) já está na pasta `public/` do projeto e será incluído automaticamente em todos os seus builds.
 
+## Uso em Smartphones (PWA & Responsividade Total)
+
+O SIGE-Condo foi totalmente refatorado para oferecer uma **experiência Mobile-First premium**. O sistema é um **Progressive Web App (PWA)**, permitindo instalação direta no smartphone com comportamento de aplicativo nativo.
+
+### ✨ Diferenciais da Responsividade
+- **Interface Inteligente**: Sidebar adaptativa que se torna um menu lateral (drawer) no mobile.
+- **Visualização Otimizada**: Tabelas complexas transformam-se automaticamente em **Cards interativos** em telas pequenas.
+- **Formulários Adaptativos**: Grids dinâmicos e diálogos em tela cheia para facilitar a digitação no celular.
+- **Chat IA Mobile**: Assistente virtual com interface dedicada para mobile, otimizando o espaço de conversa.
+- **Toque Amigável**: Alvos de clique expandidos (mínimo 44px) e suporte a gestos.
+
+### Como instalar no celular
+
+**Android (Chrome):**
+1. Acesse a URL do sistema no navegador Chrome
+2. O banner **"Instalar app"** aparece automaticamente, OU
+3. Toque no menu (⋮) → **"Instalar app"**
+
+**iPhone (Safari):**
+1. Acesse a URL no navegador Safari
+2. Toque no ícone de **Compartilhar** (seta para cima)
+3. Selecione **"Adicionar à Tela de Início"**
+
+### Atualizações automáticas
+
+Quando você faz um novo deploy na Hostinger, o app no celular dos usuários **atualiza automaticamente** na próxima vez que for aberto — sem necessidade de reinstalar.
+
+### Arquivos do PWA
+
+| Arquivo | Descrição |
+|---|---|
+| `public/manifest.json` | Configuração do app (nome, cores, ícones, modo tela cheia) |
+| `public/sw.js` | Service Worker — cache inteligente e atualizações automáticas |
+| `public/icons/icon-192x192.png` | Ícone exibido na tela inicial do celular |
+| `public/icons/icon-512x512.png` | Ícone para splash screen |
+
+> [!NOTE]
+> O sistema usa modo `standalone`, ou seja, ao abrir pelo ícone instalado, **não aparece a barra de endereço do navegador** — a experiência é idêntica a um app nativo.
+
 ## Segurança e Persistência de Dados
 
 É importante entender a separação entre os arquivos do site e os seus dados:

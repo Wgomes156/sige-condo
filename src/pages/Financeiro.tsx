@@ -110,23 +110,34 @@ export default function Financeiro() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <DollarSign className="h-6 w-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2 text-primary">
+            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />
             Financeiro
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Gestão financeira dos condomínios
           </p>
         </div>
-        <div className="flex gap-2">
-          <ImportarExtratoDialog />
-          <ExportarExtratoDialog />
-          <Button variant="outline" onClick={handleNovaDespesa}>
-            <Plus className="h-4 w-4 mr-2" />
+        <div className="grid grid-cols-2 sm:flex gap-2">
+          <div className="col-span-1">
+            <ImportarExtratoDialog />
+          </div>
+          <div className="col-span-1">
+            <ExportarExtratoDialog />
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={handleNovaDespesa}
+            className="w-full sm:w-auto h-11 sm:h-10 text-xs sm:text-sm"
+          >
+            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
             Nova Despesa
           </Button>
-          <Button onClick={handleNovaReceita}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button 
+            onClick={handleNovaReceita}
+            className="w-full sm:w-auto h-11 sm:h-10 text-xs sm:text-sm font-bold shadow-sm"
+          >
+            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
             Nova Receita
           </Button>
         </div>

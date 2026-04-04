@@ -206,30 +206,30 @@ export default function Relatorios() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Relatórios</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">Relatórios</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Analise dados e exporte relatórios do sistema
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 sm:flex gap-2">
           <Button
             variant="outline"
             onClick={handleExportCSV}
             disabled={isExporting}
-            className="gap-2"
+            className="flex-1 sm:flex-none h-12 sm:h-10 text-base sm:text-sm gap-2"
           >
-            <FileSpreadsheet className="h-4 w-4" />
-            Exportar CSV
+            <FileSpreadsheet className="h-5 w-5 sm:h-4 sm:w-4" />
+            CSV
           </Button>
           <Button
             onClick={handleExportPDF}
             disabled={isExporting}
-            className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+            className="flex-1 sm:flex-none h-12 sm:h-10 text-base sm:text-sm font-bold gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sm"
           >
-            <FileText className="h-4 w-4" />
-            Exportar PDF
+            <FileText className="h-5 w-5 sm:h-4 sm:w-4" />
+            PDF
           </Button>
         </div>
       </div>
@@ -243,11 +243,11 @@ export default function Relatorios() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="w-full md:w-48">
-              <Label>Período</Label>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="w-full sm:w-48">
+              <Label className="mb-2 block">Período</Label>
               <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,24 +260,26 @@ export default function Relatorios() {
               </Select>
             </div>
             {period === "custom" && (
-              <>
-                <div className="w-full md:w-48">
-                  <Label>Data Início</Label>
+              <div className="grid grid-cols-2 sm:flex gap-4 flex-1">
+                <div className="flex-1">
+                  <Label className="mb-2 block">Data Início</Label>
                   <Input
                     type="date"
                     value={customStart}
                     onChange={(e) => setCustomStart(e.target.value)}
+                    className="h-11 sm:h-10"
                   />
                 </div>
-                <div className="w-full md:w-48">
-                  <Label>Data Fim</Label>
+                <div className="flex-1">
+                  <Label className="mb-2 block">Data Fim</Label>
                   <Input
                     type="date"
                     value={customEnd}
                     onChange={(e) => setCustomEnd(e.target.value)}
+                    className="h-11 sm:h-10"
                   />
                 </div>
-              </>
+              </div>
             )}
           </div>
           {filters.dataInicio && filters.dataFim && (
@@ -291,7 +293,7 @@ export default function Relatorios() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">

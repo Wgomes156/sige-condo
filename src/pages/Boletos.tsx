@@ -65,27 +65,39 @@ export default function Boletos() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gestão de Boletos</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary">Gestão de Boletos</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Cadastre e gerencie boletos de cobrança por condomínio
             </p>
           </div>
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExportCSV} disabled={!boletos?.length}>
-              <Download className="mr-2 h-4 w-4" />
+          <div className="grid grid-cols-2 sm:flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleExportCSV} 
+              disabled={!boletos?.length}
+              className="h-11 sm:h-10 text-xs sm:text-sm"
+            >
+              <Download className="mr-1 sm:mr-2 h-4 w-4" />
               Exportar
             </Button>
             {canCreate && (
               <>
-                <Button variant="outline" onClick={() => setShowImportForm(true)}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Importar Lote
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowImportForm(true)}
+                  className="h-11 sm:h-10 text-xs sm:text-sm"
+                >
+                  <Upload className="mr-1 sm:mr-2 h-4 w-4" />
+                  Importar
                 </Button>
-                <Button onClick={() => setShowNovoForm(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button 
+                  onClick={() => setShowNovoForm(true)}
+                  className="col-span-2 sm:col-span-1 h-11 sm:h-10 text-xs sm:text-sm font-bold shadow-sm"
+                >
+                  <Plus className="mr-1 sm:mr-2 h-4 w-4" />
                   Novo Boleto
                 </Button>
               </>

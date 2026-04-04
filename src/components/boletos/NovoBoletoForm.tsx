@@ -30,6 +30,8 @@ import { useCategorias } from "@/hooks/useFinanceiro";
 import { useCreateBoleto } from "@/hooks/useBoletos";
 import { useUnidades } from "@/hooks/useUnidades";
 import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   condominio_id: z.string().min(1, "Selecione um condomínio"),
@@ -52,6 +54,7 @@ interface NovoBoletoFormProps {
 }
 
 export function NovoBoletoForm({ open, onOpenChange }: NovoBoletoFormProps) {
+  const isMobile = useIsMobile();
   const { data: condominios } = useCondominios();
   const { data: categorias } = useCategorias("receita");
   const createBoleto = useCreateBoleto();
@@ -106,14 +109,17 @@ export function NovoBoletoForm({ open, onOpenChange }: NovoBoletoFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className={cn(
+        "max-h-[95vh] overflow-y-auto p-0",
+        isMobile ? "max-w-[95vw] rounded-lg" : "max-w-2xl"
+      )}>
+        <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Novo Boleto</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-6">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="condominio_id"
@@ -171,7 +177,7 @@ export function NovoBoletoForm({ open, onOpenChange }: NovoBoletoFormProps) {
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="unidade_id"
@@ -219,7 +225,7 @@ export function NovoBoletoForm({ open, onOpenChange }: NovoBoletoFormProps) {
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-3">
               <FormField
                 control={form.control}
                 name="morador_nome"
@@ -263,7 +269,7 @@ export function NovoBoletoForm({ open, onOpenChange }: NovoBoletoFormProps) {
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="valor"
@@ -311,15 +317,20 @@ export function NovoBoletoForm({ open, onOpenChange }: NovoBoletoFormProps) {
               )}
             />
 
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
               <Button
                 type="button"
                 variant="outline"
+                className="w-full sm:w-auto h-11 sm:h-10"
                 onClick={() => onOpenChange(false)}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createBoleto.isPending}>
+              <Button 
+                type="submit" 
+                disabled={createBoleto.isPending}
+                className="w-full sm:w-auto h-11 sm:h-10 font-bold"
+              >
                 {createBoleto.isPending ? "Salvando..." : "Cadastrar Boleto"}
               </Button>
             </div>

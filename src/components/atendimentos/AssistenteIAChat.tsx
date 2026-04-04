@@ -16,6 +16,9 @@ import { useUnidadesMorador } from "@/hooks/usePortalMorador";
 import { useCondominios } from "@/hooks/useCondominios";
 import { useUnidades } from "@/hooks/useUnidades";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { cn } from "@/lib/utils";
+import { ArrowLeft } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string; urgente?: boolean };
 
@@ -35,6 +38,7 @@ interface UsuarioLogado {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistente-atendimento`;
 
 export function AssistenteIAChat({ open, onOpenChange }: AssistenteIAChatProps) {
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -291,18 +295,40 @@ export function AssistenteIAChat({ open, onOpenChange }: AssistenteIAChatProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-primary">
+      <DialogContent className={cn(
+        "flex flex-col p-0 gap-0",
+        isMobile ? "w-screen h-[100dvh] max-w-none rounded-none border-none" : "max-w-lg max-h-[90vh]"
+      )}>
+        <DialogHeader className={cn(
+          "px-4 py-3 border-b flex-row items-center gap-3 space-y-0",
+          isMobile ? "h-14" : ""
+        )}>
+          {isMobile && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => onOpenChange(false)}
+              className="-ml-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <DialogTitle className="flex items-center gap-2 text-primary text-base sm:text-lg">
             <Bot className="h-5 w-5" />
-            Assistente Ana — CondoPlus
-            <Badge variant="secondary" className="ml-auto text-xs font-normal">
+            Ana — CondoPlus
+            <Badge variant="secondary" className="ml-2 text-[10px] font-normal px-1.5 py-0">
               IA
             </Badge>
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-[350px] max-h-[55vh] pr-2" ref={scrollRef}>
+        <ScrollArea 
+          className={cn(
+            "flex-1 px-4 py-4",
+            isMobile ? "h-full" : "min-h-[350px] max-h-[55vh]"
+          )} 
+          ref={scrollRef}
+        >
           <div className="space-y-3 pb-2">
             {messages.map((msg, i) => (
               <div
@@ -331,52 +357,64 @@ export function AssistenteIAChat({ open, onOpenChange }: AssistenteIAChatProps) 
           </div>
         </ScrollArea>
 
-        {atendimentoCriado && (
-          <div
-            className={`flex items-center gap-2 p-2 rounded-md text-sm ${
-              ultimoAtendimentoUrgente
-                ? "bg-destructive/10 text-destructive border border-destructive/30"
-                : "bg-accent text-accent-foreground"
-            }`}
-          >
-            {ultimoAtendimentoUrgente ? (
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-            )}
-            {ultimoAtendimentoUrgente
-              ? "Emergência registrada — síndico notificado!"
-              : "Atendimento criado com sucesso!"}
-          </div>
-        )}
+        <div className={cn(
+          "p-4 border-t bg-background sticky bottom-0",
+          isMobile ? "pb-8" : ""
+        )}>
+          {atendimentoCriado && (
+            <div
+              className={cn(
+                "flex items-center gap-2 p-3 rounded-md text-sm mb-3",
+                ultimoAtendimentoUrgente
+                  ? "bg-destructive/10 text-destructive border border-destructive/30"
+                  : "bg-accent text-accent-foreground"
+              )}
+            >
+              {ultimoAtendimentoUrgente ? (
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+              )}
+              <span className="font-medium">
+                {ultimoAtendimentoUrgente
+                  ? "Emergência registrada — síndico notificado!"
+                  : "Atendimento criado com sucesso!"}
+              </span>
+            </div>
+          )}
 
-        <div className="flex gap-2 pt-2 border-t">
-          <Input
-            placeholder="Digite sua mensagem..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-            disabled={isLoading}
-          />
-          <Button
-            size="icon"
-            onClick={sendMessage}
-            disabled={isLoading || !input.trim()}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {atendimentoCriado && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleNovaConversa} className="flex-1">
-              Nova conversa
-            </Button>
-            <Button variant="default" onClick={handleReset} className="flex-1">
-              Fechar
+            <Input
+              placeholder="Digite sua mensagem..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+              disabled={isLoading}
+              className="h-12 sm:h-10 text-base sm:text-sm shadow-sm"
+            />
+            <Button
+              size="icon"
+              className="h-12 w-12 sm:h-10 sm:w-10 shrink-0"
+              onClick={sendMessage}
+              disabled={isLoading || !input.trim()}
+            >
+              <Send className="h-5 w-5 sm:h-4 sm:w-4" />
             </Button>
           </div>
-        )}
+
+          {atendimentoCriado && (
+            <div className="flex gap-2 mt-3">
+              <Button variant="outline" onClick={handleNovaConversa} className="flex-1 h-11 sm:h-9">
+                Nova conversa
+              </Button>
+              {!isMobile && (
+                <Button variant="default" onClick={handleReset} className="flex-1 h-11 sm:h-9">
+                  Fechar
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
