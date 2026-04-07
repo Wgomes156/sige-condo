@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-import logo from "@/assets/logo-psc.png";
+import logo from "@/assets/logo-psc.jpg";
 import { useAuth } from "@/hooks/useAuth";
 import { useMobileMenu } from "./MainLayout";
 
@@ -116,7 +116,7 @@ export function AppSidebar() {
       >
         {/* Header do drawer mobile */}
         <div className="bg-white flex items-center justify-between px-4 h-16 shrink-0">
-          <img src={logo} alt="CondoPlus" className="h-12 w-auto" />
+          <img src={logo} alt="CondoPlus" className="h-16 w-auto" />
           <button
             onClick={closeMobileMenu}
             className="p-2 rounded-lg text-sidebar hover:bg-gray-100 transition-colors"
@@ -154,12 +154,12 @@ export function AppSidebar() {
       {/* ===== SIDEBAR DESKTOP/TABLET: componente shadcn/ui (≥ lg) ===== */}
       <Sidebar collapsible="icon" className="border-r border-sidebar-border hidden lg:flex">
         <SidebarHeader className="p-0">
-          <div className="bg-white w-full h-16 flex items-center justify-center px-3">
+          <div className="bg-white w-full h-24 flex items-center justify-center px-3">
             <img
               src={logo}
               alt="CondoPlus"
               className={`transition-all duration-200 ${
-                isCollapsed ? "w-8 h-8" : "h-24 w-auto"
+                isCollapsed ? "w-12 h-12" : "h-20 w-auto"
               }`}
             />
           </div>

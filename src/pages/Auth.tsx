@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import logoPsc from "@/assets/logo-psc.png";
+import logoPsc from "@/assets/logo-psc.jpg";
 import { Building2, Shield, Users, Loader2, Mail, Lock, User, ArrowLeft, Eye, EyeOff, Check, X } from "lucide-react";
 import { PasswordStrength } from "@/components/ui/password-strength";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -785,9 +785,7 @@ export default function Auth() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <div className="bg-white rounded-2xl p-4 w-fit shadow-2xl">
-              <img src={logoPsc} alt="CondoPlus" className="h-16 w-auto" />
-            </div>
+              <img src={logoPsc} alt="CondoPlus" className="h-20 w-auto" />
           </motion.div>
 
           <motion.h1
@@ -866,8 +864,8 @@ export default function Auth() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
-            <div className="inline-block bg-white rounded-2xl p-4 shadow-lg mb-4">
-              <img src={logoPsc} alt="CondoPlus" className="h-12 w-auto" />
+            <div className="inline-block bg-white rounded-2xl p-2 shadow-lg mb-4">
+              <img src={logoPsc} alt="CondoPlus" className="h-16 w-auto" />
             </div>
             <h1 className="text-2xl font-bold text-[hsl(35,92%,55%)]">CondoPlus</h1>
             <p className="text-muted-foreground">Sistema de Gestão de Condomínios</p>
