@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -31,7 +31,9 @@ import { Separator } from "@/components/ui/separator";
 import { useCreateAtendimento } from "@/hooks/useAtendimentos";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useUploadAnexo, formatFileSize } from "@/hooks/useAnexos";
 import { cn } from "@/lib/utils";
+import { Upload, FileText, X, Paperclip } from "lucide-react";
 
 const atendimentoSchema = z.object({
   // Dados do Atendimento
@@ -120,7 +122,11 @@ const tiposImovel = [
 export function NovoAtendimentoForm({ open, onOpenChange }: NovoAtendimentoFormProps) {
   const isMobile = useIsMobile();
   const createAtendimento = useCreateAtendimento();
+  const uploadAnexo = useUploadAnexo();
   const { user } = useAuth();
+  
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get user name from metadata or email
   const userName = user?.user_metadata?.nome || user?.email?.split("@")[0] || "";
@@ -169,7 +175,7 @@ export function NovoAtendimentoForm({ open, onOpenChange }: NovoAtendimentoFormP
 
   const onSubmit = async (data: AtendimentoFormData) => {
     try {
-      await createAtendimento.mutateAsync({
+      const newAtendimento = await createAtendimento.mutateAsync({
         data: data.data,
         hora: data.hora,
         operador_nome: data.operador_nome,
@@ -182,12 +188,25 @@ export function NovoAtendimentoForm({ open, onOpenChange }: NovoAtendimentoFormP
         cliente_email: data.cliente_email || undefined,
         condominio_nome: data.condominio_nome,
       });
+
+      // Se houver um arquivo PDF selecionado, faz o upload vinculado ao novo atendimento
+      if (selectedFile && newAtendimento?.id) {
+        await uploadAnexo.mutateAsync({
+          file: selectedFile,
+          entidadeTipo: "atendimento",
+          entidadeId: newAtendimento.id,
+        });
+      }
+
       form.reset();
+      setSelectedFile(null);
       onOpenChange(false);
     } catch (error) {
       // Error is handled in the mutation
     }
   };
+
+  const isSaving = createAtendimento.isPending || uploadAnexo.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -352,6 +371,53 @@ export function NovoAtendimentoForm({ open, onOpenChange }: NovoAtendimentoFormP
                       <FormMessage />
                     </FormItem>
                   )}
+                />
+              </div>
+
+              {/* Seção: Anexo de Documento */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                  <Paperclip className="h-4 w-4 text-secondary" />
+                  Anexo de Documento (PDF)
+                </h3>
+                <Separator />
+                
+                {selectedFile ? (
+                  <div className="flex items-center gap-3 p-3 border-2 border-primary/20 bg-muted/30 rounded-lg">
+                    <FileText className="h-8 w-8 text-red-500" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => {
+                        setSelectedFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
+                    >
+                      <X className="h-5 w-5 text-muted-foreground hover:text-red-500" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-primary/20 bg-muted/10 rounded-lg group cursor-pointer hover:border-primary/40 hover:bg-muted/20 transition-all"
+                  >
+                    <Upload className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <p className="mt-2 text-sm font-medium text-muted-foreground group-hover:text-primary">Clique para selecionar um PDF</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 text-center">Máximo 10MB. Documentos iniciais, propostas ou solicitações.</p>
+                  </div>
+                )}
+                
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  accept=".pdf" 
+                  className="hidden" 
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 />
               </div>
 
@@ -777,9 +843,9 @@ export function NovoAtendimentoForm({ open, onOpenChange }: NovoAtendimentoFormP
             type="button"
             className="w-full sm:w-auto h-12 sm:h-10 text-base font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-md active:scale-95 transition-all"
             onClick={form.handleSubmit(onSubmit)}
-            disabled={createAtendimento.isPending}
+            disabled={isSaving}
           >
-            {createAtendimento.isPending ? "Salvando..." : "Salvar Atendimento"}
+            {isSaving ? "Salvando..." : "Salvar Atendimento"}
           </Button>
         </div>
       </DialogContent>

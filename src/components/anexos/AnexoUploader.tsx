@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useUploadAnexo } from "@/hooks/useAnexos";
 
 interface AnexoUploaderProps {
-  entidadeTipo: "condominio" | "atendimento" | "ordem_servico" | "ocorrencia_condominio";
+  entidadeTipo: "condominio" | "atendimento" | "ordem_servico" | "ocorrencia_condominio" | "atendimento_historico";
   entidadeId: string;
   disabled?: boolean;
 }

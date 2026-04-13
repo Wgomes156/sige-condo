@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,12 @@ export default function Atendimentos() {
   const [isAssistenteOpen, setIsAssistenteOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+
+  // selectedAtendimento nunca vira null enquanto o modal está aberto.
+  // Usamos uma ref para guardar o último valor válido.
   const [selectedAtendimento, setSelectedAtendimento] = useState<Atendimento | null>(null);
+  const editAtendimentoRef = useRef<Atendimento | null>(null);
+
   const [filters, setFilters] = useState<AtendimentoFilters>({});
   const [searchInput, setSearchInput] = useState("");
   const { userRole } = useAuth();
@@ -41,8 +46,31 @@ export default function Atendimentos() {
   };
 
   const handleEdit = (atendimento: Atendimento) => {
+    // Guarda na ref antes de abrir — garante que nunca será null durante a abertura
+    editAtendimentoRef.current = atendimento;
     setSelectedAtendimento(atendimento);
     setIsEditOpen(true);
+  };
+
+  const handleDetalhesOpenChange = (open: boolean) => {
+    setIsDetalhesOpen(open);
+    if (!open) {
+      setTimeout(() => {
+        if (!isEditOpen) setSelectedAtendimento(null);
+      }, 350);
+    }
+  };
+
+  // Ao fechar o modal de edição, espera a animação terminar antes de limpar
+  const handleEditOpenChange = (open: boolean) => {
+    setIsEditOpen(open);
+    if (!open) {
+      // Limpa só depois da animação de fechar (300ms é o padrão Radix)
+      setTimeout(() => {
+        setSelectedAtendimento(null);
+        editAtendimentoRef.current = null;
+      }, 350);
+    }
   };
 
   return (
@@ -104,13 +132,17 @@ export default function Atendimentos() {
       <AssistenteIAChat open={isAssistenteOpen} onOpenChange={setIsAssistenteOpen} />
       <AtendimentoDetalhes 
         open={isDetalhesOpen} 
-        onOpenChange={setIsDetalhesOpen} 
+        onOpenChange={handleDetalhesOpenChange} 
         atendimento={selectedAtendimento} 
+        onEdit={handleEdit}
       />
       <EditarAtendimentoDialog
         open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-        atendimento={selectedAtendimento}
+        onOpenChange={handleEditOpenChange}
+        atendimento={
+          // Usa a ref para garantir que nunca passa null enquanto o modal está aberto
+          isEditOpen ? (selectedAtendimento ?? editAtendimentoRef.current) : selectedAtendimento
+        }
       />
     </div>
   );

@@ -10,6 +10,7 @@ Sistema completo para administradoras de condomínios, desenvolvido com React, T
 - **Formulários**: React Hook Form + Zod
 - **Gráficos**: Recharts
 - **PDF**: jsPDF + jsPDF-AutoTable
+- **Storage**: Supabase Storage para gestão de documentos e anexos
 
 ## Módulos do sistema
 
@@ -18,7 +19,7 @@ Sistema completo para administradoras de condomínios, desenvolvido com React, T
 | Dashboard | Visão geral de KPIs e indicadores |
 | Condomínios | Cadastro e gestão de condomínios |
 | Unidades | Gestão de unidades e moradores |
-| Atendimentos | Central de atendimento |
+| Atendimentos | Central de atendimento com histórico detalhado e anexos |
 | Financeiro | Controle financeiro e lançamentos |
 | Boletos | Geração e gestão de boletos |
 | Boletos Recorrentes | Cobrança recorrente automatizada |
@@ -138,6 +139,16 @@ Sempre que fizer mudanças no código, repita o processo:
 
 > [!NOTE]
 > O arquivo `.htaccess` (necessário para o roteamento do React) já está na pasta `public/` do projeto e será incluído automaticamente em todos os seus builds.
+
+## Gestão de Atendimentos (Aprimorada)
+
+O módulo de Atendimentos recebeu uma atualização significativa para suportar fluxos complexos de relacionamento com clientes:
+
+- **Histórico Editável**: Capacidade de corrigir e detalhar interações passadas com total controle.
+- **Anexos em PDF**: Upload e visualização de documentos PDF diretamente em cada interação do histórico.
+- **Painel Lateral Inteligente**: Transição de modais para painéis laterais (Sheets) para evitar conflitos de navegação.
+- **Gestão de Ciclo de Vida de Arquivos**: O sistema remove automaticamente do banco e do Storage os arquivos órfãos ao excluir registros de histórico, garantindo economia de espaço.
+- **Interface Estável**: Proteções contra fechamento acidental e crash de renderização por dados inválidos.
 
 ## Uso em Smartphones (PWA & Responsividade Total)
 

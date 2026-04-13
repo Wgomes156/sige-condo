@@ -26,6 +26,17 @@ import { useAtendimentos, useDeleteAtendimento, type AtendimentoFilters, type At
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const safeFormatDate = (dateStr: string | null | undefined) => {
+  try {
+    if (!dateStr) return "S/D";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "Data inválida";
+    return format(date, "dd/MM/yyyy", { locale: ptBR });
+  } catch (e) {
+    return "Data inválida";
+  }
+};
+
 interface AtendimentosTableProps {
   filters?: AtendimentoFilters;
   onView?: (atendimento: Atendimento) => void;
@@ -96,7 +107,7 @@ export function AtendimentosTable({ filters, onView, onEdit }: AtendimentosTable
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {format(new Date(atendimento.data), "dd/MM/yyyy", { locale: ptBR })} - {atendimento.hora?.slice(0, 5)}
+                    {safeFormatDate(atendimento.data)} - {atendimento.hora ? atendimento.hora.slice(0, 5) : "00:00"}
                   </p>
                   <h3 className="font-bold text-lg">{atendimento.cliente_nome}</h3>
                 </div>
@@ -162,10 +173,10 @@ export function AtendimentosTable({ filters, onView, onEdit }: AtendimentosTable
                 <TableCell className="whitespace-nowrap">
                   <div className="flex flex-col">
                     <span className="font-medium">
-                      {format(new Date(atendimento.data), "dd/MM/yyyy", { locale: ptBR })}
+                      {safeFormatDate(atendimento.data)}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {atendimento.hora?.slice(0, 5)}
+                      {atendimento.hora ? atendimento.hora.slice(0, 5) : "00:00"}
                     </span>
                   </div>
                 </TableCell>

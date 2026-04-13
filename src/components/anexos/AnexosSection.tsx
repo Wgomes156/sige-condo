@@ -4,7 +4,7 @@ import { AnexoUploader } from "./AnexoUploader";
 import { AnexosList } from "./AnexosList";
 
 interface AnexosSectionProps {
-  entidadeTipo: "condominio" | "atendimento" | "ordem_servico" | "ocorrencia_condominio";
+  entidadeTipo: "condominio" | "atendimento" | "ordem_servico" | "ocorrencia_condominio" | "atendimento_historico";
   entidadeId: string | null;
   showUploader?: boolean;
   showDelete?: boolean;
