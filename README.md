@@ -144,11 +144,11 @@ Sempre que fizer mudanças no código, repita o processo:
 
 O módulo de Atendimentos recebeu uma atualização significativa para suportar fluxos complexos de relacionamento com clientes:
 
-- **Histórico Editável**: Capacidade de corrigir e detalhar interações passadas com total controle.
-- **Anexos em PDF**: Upload e visualização de documentos PDF diretamente em cada interação do histórico.
-- **Painel Lateral Inteligente**: Transição de modais para painéis laterais (Sheets) para evitar conflitos de navegação.
-- **Gestão de Ciclo de Vida de Arquivos**: O sistema remove automaticamente do banco e do Storage os arquivos órfãos ao excluir registros de histórico, garantindo economia de espaço.
-- **Interface Estável**: Proteções contra fechamento acidental e crash de renderização por dados inválidos.
+- **Histórico Totalmente Editável**: Agora é possível corrigir, atualizar ou excluir registros de interações passadas, garantindo que o histórico reflita com precisão o que foi conversado.
+- **Anexos em PDF por Interação**: Cada linha de histórico suporta agora o seu próprio documento PDF anexo. O sistema gerencia o upload para o Supabase Storage e a visualização via URLs assinadas e seguras.
+- **Painel Lateral de Alta Estabilidade**: Migração para componentes de painel lateral (Sheets) com lógica de isolamento de estado, prevenindo conflitos visuais e garantindo que o sistema não "trave" ou apresente telas brancas durante a edição.
+- **Ciclo de Vida de Documentos**: Ao excluir um registro de histórico, o sistema remove automaticamente os arquivos físicos do Storage, mantendo o armazenamento otimizado e organizado.
+- **Interface Premium em Laranja**: Visual padronizado com o design system do CondoPlus, utilizando cores vibrantes e ícones claros para facilitar a navegação em desktop e mobile.
 
 ## Uso em Smartphones (PWA & Responsividade Total)
 

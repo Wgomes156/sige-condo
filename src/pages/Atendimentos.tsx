@@ -19,8 +19,6 @@ export default function Atendimentos() {
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  // selectedAtendimento nunca vira null enquanto o modal está aberto.
-  // Usamos uma ref para guardar o último valor válido.
   const [selectedAtendimento, setSelectedAtendimento] = useState<Atendimento | null>(null);
   const editAtendimentoRef = useRef<Atendimento | null>(null);
 
@@ -46,80 +44,52 @@ export default function Atendimentos() {
   };
 
   const handleEdit = (atendimento: Atendimento) => {
-    // Guarda na ref antes de abrir — garante que nunca será null durante a abertura
-    editAtendimentoRef.current = atendimento;
-    setSelectedAtendimento(atendimento);
-    setIsEditOpen(true);
-  };
-
-  const handleDetalhesOpenChange = (open: boolean) => {
-    setIsDetalhesOpen(open);
-    if (!open) {
-      setTimeout(() => {
-        if (!isEditOpen) setSelectedAtendimento(null);
-      }, 350);
-    }
-  };
-
-  // Ao fechar o modal de edição, espera a animação terminar antes de limpar
-  const handleEditOpenChange = (open: boolean) => {
-    setIsEditOpen(open);
-    if (!open) {
-      // Limpa só depois da animação de fechar (300ms é o padrão Radix)
-      setTimeout(() => {
-        setSelectedAtendimento(null);
-        editAtendimentoRef.current = null;
-      }, 350);
-    }
+    // Fechamos outros modais antes de abrir a edição para evitar conflitos de Sheet/Dialog
+    setIsDetalhesOpen(false);
+    setIsFormOpen(false);
+    setIsAssistenteOpen(false);
+    
+    setTimeout(() => {
+      setSelectedAtendimento(atendimento);
+      setIsEditOpen(true);
+    }, 100);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Atendimentos</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground uppercase tracking-tight">Atendimentos</h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Gerencie todos os atendimentos do sistema
+            Gerencie o histórico e documentos de cada atendimento
           </p>
         </div>
         {canCreate && (
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={() => setIsAssistenteOpen(true)}
-            >
-              <Bot className="h-4 w-4 mr-2" />
-              Assistente IA
+            <Button variant="outline" className="w-full sm:w-auto border-orange-200 hover:bg-orange-50 text-orange-700" onClick={() => setIsAssistenteOpen(true)}>
+              <Bot className="h-4 w-4 mr-2" /> Assistente IA
             </Button>
-            <Button 
-              className="w-full sm:w-auto bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sm"
-              onClick={() => setIsFormOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Atendimento
+            <Button className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600 shadow-md font-bold" onClick={() => setIsFormOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Novo Atendimento
             </Button>
           </div>
         )}
       </div>
 
-      <Card className="bg-card">
-        <CardHeader>
+      <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm">
+        <CardHeader className="pb-2">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Buscar por cliente, telefone, condomínio, operador..."
-                  className="pl-10"
+                  placeholder="Buscar cliente, telefone, condomínio..."
+                  className="pl-10 h-11 border-slate-200 focus-visible:ring-orange-500"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                 />
               </div>
-              <FiltrosAvancados
-                filters={activeFilters}
-                onFiltersChange={handleFiltersChange}
-              />
+              <FiltrosAvancados filters={activeFilters} onFiltersChange={handleFiltersChange} />
             </div>
           </div>
         </CardHeader>
@@ -128,21 +98,23 @@ export default function Atendimentos() {
         </CardContent>
       </Card>
 
+      {/* Modais e Paineis */}
       <NovoAtendimentoForm open={isFormOpen} onOpenChange={setIsFormOpen} />
       <AssistenteIAChat open={isAssistenteOpen} onOpenChange={setIsAssistenteOpen} />
+      
+      {/* Componente de Visualização (Olho) */}
       <AtendimentoDetalhes 
         open={isDetalhesOpen} 
-        onOpenChange={handleDetalhesOpenChange} 
+        onOpenChange={setIsDetalhesOpen} 
         atendimento={selectedAtendimento} 
-        onEdit={handleEdit}
+        onEdit={handleEdit} 
       />
-      <EditarAtendimentoDialog
-        open={isEditOpen}
-        onOpenChange={handleEditOpenChange}
-        atendimento={
-          // Usa a ref para garantir que nunca passa null enquanto o modal está aberto
-          isEditOpen ? (selectedAtendimento ?? editAtendimentoRef.current) : selectedAtendimento
-        }
+
+      {/* Componente de Edição (Lápis) - O Painel Lateral moderno */}
+      <EditarAtendimentoDialog 
+        open={isEditOpen} 
+        onOpenChange={setIsEditOpen} 
+        atendimento={selectedAtendimento} 
       />
     </div>
   );
