@@ -76,7 +76,7 @@ function PieChartCard({
   colors: string[];
   loading?: boolean;
 }) {
-  const hasData = data && data.length > 0;
+  const hasData = data && data.length > 0 && data.some(d => d.value > 0);
 
   return (
     <Card className="bg-card">
@@ -103,9 +103,14 @@ function PieChartCard({
                 outerRadius={80}
                 paddingAngle={2}
                 dataKey="value"
-                label={({ name, percent }) => 
-                  `${name} (${(percent * 100).toFixed(0)}%)`
-                }
+                label={({ name, percent }) => {
+                  try {
+                    const val = typeof percent === 'number' ? (percent * 100).toFixed(0) : '0';
+                    return `${name || ''} (${val}%)`;
+                  } catch (e) {
+                    return "";
+                  }
+                }}
                 labelLine={false}
               >
                 {data.map((_, index) => (

@@ -19,7 +19,11 @@ export default function Atendimentos() {
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
+  // Estado separado para o painel de detalhes (visualização)
   const [selectedAtendimento, setSelectedAtendimento] = useState<Atendimento | null>(null);
+
+  // Estado dedicado para o dialog de edição — preservado durante animação de fechamento
+  const [editAtendimento, setEditAtendimento] = useState<Atendimento | null>(null);
   const editAtendimentoRef = useRef<Atendimento | null>(null);
 
   const [filters, setFilters] = useState<AtendimentoFilters>({});
@@ -44,22 +48,36 @@ export default function Atendimentos() {
   };
 
   const handleEdit = (atendimento: Atendimento) => {
-    // Fechamos outros modais antes de abrir a edição para evitar conflitos de Sheet/Dialog
-    setIsDetalhesOpen(false);
-    setIsFormOpen(false);
-    setIsAssistenteOpen(false);
+    editAtendimentoRef.current = atendimento;
     
+    // Fecha o painel de detalhes primeiro
+    setIsDetalhesOpen(false);
+    
+    // Delay de 300ms para garantir que o modal anterior fechou e a animação terminou
     setTimeout(() => {
-      setSelectedAtendimento(atendimento);
+      setEditAtendimento(atendimento);
       setIsEditOpen(true);
-    }, 100);
+    }, 300);
+  };
+
+  const handleEditOpenChange = (open: boolean) => {
+    setIsEditOpen(open);
+    if (!open) {
+      // Mantém os dados por tempo suficiente para a animação de saída (~400ms)
+      setTimeout(() => {
+        setEditAtendimento(null);
+        editAtendimentoRef.current = null;
+      }, 400);
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground uppercase tracking-tight">Atendimentos</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-orange-600 uppercase tracking-tight italic">
+            ATENDIMENTOS
+          </h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Gerencie o histórico e documentos de cada atendimento
           </p>
@@ -113,8 +131,8 @@ export default function Atendimentos() {
       {/* Componente de Edição (Lápis) - O Painel Lateral moderno */}
       <EditarAtendimentoDialog 
         open={isEditOpen} 
-        onOpenChange={setIsEditOpen} 
-        atendimento={selectedAtendimento} 
+        onOpenChange={handleEditOpenChange} 
+        atendimento={editAtendimento} 
       />
     </div>
   );

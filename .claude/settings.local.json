@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(npm run *)",
+      "Bash(powershell -Command \"Compress-Archive -Path * -DestinationPath '../dist.zip' -Force\")",
+      "Bash(dir \"D:\\\\sige-condo\\\\dist.zip\")",
+      "Bash(dir D:\\\\sige-condo\\\\src\\\\hooks *)",
+      "Bash(dir \"D:\\\\sige-condo\\\\src\\\\components\\\\anexos\")",
+      "Bash(dir D:\\\\sige-condo\\\\src\\\\components\\\\atendimentos *)",
+      "Bash(zip -r ../dist.zip .)",
+      "Bash(node -e ' *)",
+      "Bash(where 7z)",
+      "Bash(where \"7z.exe\")",
+      "Read(//c/Program Files/7-Zip/**)",
+      "Bash(node *)",
+      "Bash(npm install *)",
+      "Bash(unzip -l dist.zip)",
+      "Bash(python3 -c \"import zipfile; z=zipfile.ZipFile\\('dist.zip'\\); [print\\(n\\) for n in z.namelist\\(\\)[:20]]\")",
+      "Bash(ls /d/sige-condo/README*)"
+    ]
+  }
+}

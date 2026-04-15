@@ -289,6 +289,9 @@ function getFilterLabel(key: string, value: string): string {
 }
 
 function formatDate(dateString: string): string {
-  const [year, month, day] = dateString.split("-");
+  if (!dateString || !dateString.includes("-")) return "Data inválida";
+  const parts = dateString.split("-");
+  if (parts.length < 3) return "Data inválida";
+  const [year, month, day] = parts;
   return `${day}/${month}/${year}`;
 }

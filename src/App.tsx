@@ -32,10 +32,13 @@ import Propostas from "./pages/Propostas";
 import Acordos from "./pages/Acordos";
 import Reservas from "./pages/Reservas";
 
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
         <Toaster />
@@ -84,6 +87,7 @@ const App = () => (
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

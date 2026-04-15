@@ -124,9 +124,14 @@ function PieChartCard({
                 outerRadius={80}
                 paddingAngle={2}
                 dataKey="value"
-                label={({ name, percent }) =>
-                  `${name} (${(percent * 100).toFixed(0)}%)`
-                }
+                label={({ name, percent }) => {
+                  try {
+                    const val = typeof percent === 'number' ? (percent * 100).toFixed(0) : '0';
+                    return `${name || ''} (${val}%)`;
+                  } catch (e) {
+                    return "";
+                  }
+                }}
                 labelLine={false}
               >
                 {data.map((_, index) => (

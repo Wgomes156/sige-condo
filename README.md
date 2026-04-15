@@ -204,3 +204,134 @@ Quando você faz um novo deploy na Hostinger, o app no celular dos usuários **a
 ## Variáveis de ambiente
 
 Consulte o arquivo [`.env.example`](.env.example) para ver as variáveis necessárias. No Supabase, certifique-se de configurar o **Site URL** para o seu domínio (ex: `https://condoplus.solutions`).
+
+---
+
+## Problemas conhecidos e soluções (Deploy)
+
+Registro dos problemas reais encontrados em produção e como foram resolvidos.
+
+---
+
+### Problema 1 — Tela branca ao clicar no lápis (editar atendimento)
+
+**Sintoma:** Clicar no ícone de edição (lápis) na página de Atendimentos causava tela em branco.
+
+**Causa:** Em `AtendimentoDetalhes.tsx`, a data do atendimento era formatada com `format(new Date(atendimento.data), ...)` diretamente, sem tratamento de erro. Se o campo `data` fosse vazio ou inválido, a função lançava um `RangeError: Invalid time value`, derrubando toda a árvore de componentes React.
+
+**Solução:** Substituir a chamada direta por `safeFormatDate(atendimento.data)` — função auxiliar já existente no mesmo arquivo que trata datas inválidas com `try/catch`.
+
+```tsx
+// ANTES (quebrando)
+value={format(new Date(atendimento.data), "dd/MM/yyyy", { locale: ptBR })}
+
+// DEPOIS (correto)
+value={safeFormatDate(atendimento.data)}
+```
+
+**Regra:** Nunca use `format(new Date(valor))` diretamente em dados vindos do banco. Sempre use `safeFormatDate` ou envolva em `try/catch`.
+
+---
+
+### Problema 2 — Site inteiro em branco após deploy (código de debug no HTML)
+
+**Sintoma:** Após uma atualização no Hostinger, o site ficou completamente em branco — sem carregar nada.
+
+**Causa:** O arquivo `index.html` continha um bloco de diagnóstico com `window.onerror` e `alert()` que foi incluído no build de produção pelo Vite:
+
+```html
+<script>
+  window.onerror = function(msg, url, line) {
+    alert("ERRO DE CARREGAMENTO: " + msg); // ← bloqueava a UI
+  };
+</script>
+```
+
+Qualquer erro JavaScript mínimo (mesmo inofensivo durante a inicialização) disparava um `alert()` que bloqueava o browser. Ao fechar o alerta, o React nunca havia montado → tela em branco. O mesmo bloco existia em `src/main.tsx` e foi removido de lá também.
+
+**Solução:** Remover completamente qualquer `alert()` do `window.onerror` do `index.html` e do `main.tsx`. Use `console.error` para diagnóstico.
+
+**Regra:** Jamais deixe `alert()` em código que vai para produção. O `index.html` é processado pelo Vite e seu conteúdo vai integralmente para o build.
+
+---
+
+### Problema 3 — ZIP criado no Windows com barras invertidas quebra estrutura de pastas no Linux
+
+**Sintoma:** Após subir o site no Hostinger, a página ficava em loop de "Carregando..." indefinidamente. O JavaScript nunca carregava.
+
+**Causa:** O ZIP foi criado com PowerShell (`Compress-Archive`) no Windows. O Windows usa barra invertida (`\`) como separador de caminho. O PowerShell embutia os caminhos com `\` dentro do ZIP:
+
+```
+assets\index-BwULJ2Lw.js    ← barra invertida (Windows)
+assets\index-C16B8aMO.css
+icons\icon-192x192.png
+```
+
+O Linux (servidor Hostinger) interpreta `\` como parte do nome do arquivo, não como separador de diretório. Então os arquivos eram extraídos assim:
+
+```
+public_html/
+├── assets\index-BwULJ2Lw.js    ← arquivo com backslash no nome!
+├── assets\index-C16B8aMO.css   ← arquivo com backslash no nome!
+└── index.html                   ← referencia /assets/index-BwULJ2Lw.js → 404!
+```
+
+A pasta `assets/` nunca era criada. O `index.html` referenciava `/assets/index-BwULJ2Lw.js` (404) e o site ficava travado no spinner.
+
+**Solução:** Criar o ZIP usando o pacote `archiver` do Node.js, que gera sempre caminhos com barra normal (`/`):
+
+```bash
+npm install archiver --save-dev
+node create-zip.cjs   # script na raiz do projeto
+```
+
+O arquivo `create-zip.cjs` na raiz do projeto cria o ZIP corretamente:
+
+```js
+const archiver = require('archiver');
+const fs = require('fs');
+const path = require('path');
+
+const output = fs.createWriteStream(path.join(__dirname, 'dist.zip'));
+const archive = archiver('zip', { zlib: { level: 9 } });
+output.on('close', () => console.log('ZIP criado: ' + archive.pointer() + ' bytes'));
+archive.on('error', (err) => { throw err; });
+archive.pipe(output);
+archive.directory(path.join(__dirname, 'dist'), false);
+archive.finalize();
+```
+
+**Regra:** **Nunca use `Compress-Archive` do PowerShell** para criar ZIPs destinados a servidores Linux. Use sempre `node create-zip.cjs` ou o comando `zip` (se disponível no terminal).
+
+---
+
+### Problema 4 — Service Worker antigo servindo conteúdo em cache após novo deploy
+
+**Sintoma:** Mesmo após subir arquivos novos no Hostinger, alguns usuários continuavam vendo a versão antiga ou com comportamento incorreto.
+
+**Causa:** O Service Worker (`sw.js`) com `CACHE_VERSION = 'condoplus-v2'` permanecia ativo no browser dos usuários, servindo arquivos JavaScript e CSS em cache da versão anterior.
+
+**Solução:** Incrementar o `CACHE_VERSION` no `public/sw.js` a cada deploy que altere arquivos de assets:
+
+```js
+// public/sw.js
+const CACHE_VERSION = 'condoplus-v3'; // ← incrementar a cada deploy
+```
+
+O Service Worker detecta a mudança de versão, ativa o novo worker, limpa os caches antigos e recarrega os clientes automaticamente.
+
+**Regra:** Sempre que fizer um deploy, incremente o `CACHE_VERSION` no `public/sw.js` para garantir que todos os usuários recebam a versão nova.
+
+---
+
+### Checklist de deploy seguro para Hostinger
+
+Antes de cada atualização, confirme:
+
+- [ ] Sem `alert()` em `index.html` ou `main.tsx`
+- [ ] Sem código de debug (`console.log` excessivos, textos como "CONEXÃO ATIVA ✅") em componentes
+- [ ] `CACHE_VERSION` incrementado em `public/sw.js`
+- [ ] ZIP criado com `node create-zip.cjs` (não com PowerShell)
+- [ ] Todos os arquivos antigos deletados do `public_html` antes de extrair o novo ZIP
+- [ ] Após extrair, verificar que `assets/` é uma **pasta** (não arquivos com `\` no nome)
+- [ ] Testar em aba anônima após o deploy

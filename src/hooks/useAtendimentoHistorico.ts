@@ -30,7 +30,7 @@ export function useAtendimentoHistorico(atendimentoId: string | undefined) {
         .from("atendimento_historico")
         .select("*")
         .eq("atendimento_id", atendimentoId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as AtendimentoHistorico[];

@@ -30,7 +30,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus, Clock, History, Pencil, Trash2,
-  FileText, ExternalLink, Paperclip, X, Upload, UserCheck,
+  FileText, ExternalLink, Paperclip, X, Upload, UserCheck, Printer,
+  Loader2, Calendar,
 } from "lucide-react";
 import { useUpdateAtendimento, type Atendimento } from "@/hooks/useAtendimentos";
 import {
@@ -65,31 +66,31 @@ const safeHora = (h?: string | null) => {
 
 const historicoStatusColor = (s: string) => {
   switch (s) {
-    case "Aguardando":              return "bg-orange-500/20 text-orange-700 border-orange-500/30";
-    case "Em andamento":           return "bg-blue-500/20 text-blue-700 border-blue-500/30";
-    case "Contrato fechado":       return "bg-green-500/20 text-green-700 border-green-500/30";
+    case "Aguardando": return "bg-orange-500/20 text-orange-700 border-orange-500/30";
+    case "Em andamento": return "bg-blue-500/20 text-blue-700 border-blue-500/30";
+    case "Contrato fechado": return "bg-green-500/20 text-green-700 border-green-500/30";
     case "Encerrado sem contrato": return "bg-red-500/20 text-red-700 border-red-500/30";
-    default:                       return "bg-gray-500/10 text-gray-700 border-gray-300";
+    default: return "bg-gray-500/10 text-gray-700 border-gray-300";
   }
 };
 
-const CANAIS   = ["Telefone","WhatsApp","E-mail","Presencial","Chat","Redes Sociais"];
-const STATUS   = ["Em andamento","Tem demanda","Finalizado","Aguardando retorno","Com Contrato","Finalizado sem contrato"];
-const MOTIVOS  = ["Dúvida","Reclamação","Solicitação de serviço","Informação","Orçamento","Cancelamento","Outros"];
-const H_STATUS = ["Aguardando","Em andamento","Contrato fechado","Encerrado sem contrato","Outros"];
+const CANAIS = ["Telefone", "WhatsApp", "E-mail", "Presencial", "Chat", "Redes Sociais"];
+const STATUS = ["Em andamento", "Tem demanda", "Finalizado", "Aguardando retorno", "Com Contrato", "Finalizado sem contrato"];
+const MOTIVOS = ["Dúvida", "Reclamação", "Solicitação de serviço", "Informação", "Orçamento", "Cancelamento", "Outros"];
+const H_STATUS = ["Aguardando", "Em andamento", "Contrato fechado", "Encerrado sem contrato", "Outros"];
 
 const schema = z.object({
-  data:             z.string().min(1),
-  hora:             z.string().min(1),
-  operador_nome:    z.string().min(1),
-  canal:            z.string().min(1),
-  status:           z.string().min(1),
-  motivo:           z.string().min(1),
-  observacoes:      z.string().optional(),
-  cliente_nome:     z.string().min(1),
+  data: z.string().min(1),
+  hora: z.string().min(1),
+  operador_nome: z.string().min(1),
+  canal: z.string().min(1),
+  status: z.string().min(1),
+  motivo: z.string().min(1),
+  observacoes: z.string().optional(),
+  cliente_nome: z.string().min(1),
   cliente_telefone: z.string().min(1),
-  cliente_email:    z.string().email().optional().or(z.literal("")),
-  condominio_nome:  z.string().min(1),
+  cliente_email: z.string().email().optional().or(z.literal("")),
+  condominio_nome: z.string().min(1),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -105,11 +106,11 @@ function HistoricoAnexos({ id, allowDelete }: { id: string; allowDelete?: boolea
       {anexos.map(a => (
         <div key={a.id} className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 bg-white shadow-sm hover:border-orange-200 transition-colors">
           <FileText className="h-3 w-3 text-red-500" />
-          <button type="button" className="text-[11px] font-bold uppercase text-slate-700 hover:text-orange-600" 
-            onClick={async () => { const u = await getAnexoUrl(a.storage_path); if(u) window.open(u, "_blank"); }}>
+          <button type="button" className="text-[11px] font-bold uppercase text-slate-700 hover:text-orange-600"
+            onClick={async () => { const u = await getAnexoUrl(a.storage_path); if (u) window.open(u, "_blank"); }}>
             Documento PDF
           </button>
-          {allowDelete && <button type="button" onClick={() => { if(confirm("Remover?")) del.mutate(a); }} className="text-slate-400 hover:text-red-500"><X className="h-3 w-3" /></button>}
+          {allowDelete && <button type="button" onClick={() => { if (confirm("Remover?")) del.mutate(a); }} className="text-slate-400 hover:text-red-500"><X className="h-3 w-3" /></button>}
         </div>
       ))}
     </div>
@@ -140,23 +141,30 @@ function PdfField({ value, onChange }: { value: File | null; onChange: (f: File 
 /* ── Principal ───────────────────────────────────────────────────────────── */
 
 export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { open: boolean; onOpenChange: (v: boolean) => void; atendimento: Atendimento | null; }) {
+  console.log("[DEBUG] EditarAtendimentoDialog: Abrindo?", open, "ID:", atendimento?.id);
   const isMobile = useIsMobile();
   const updateAtendimento = useUpdateAtendimento();
   const { data: historico } = useAtendimentoHistorico(atendimento?.id);
   const createHistorico = useCreateAtendimentoHistorico();
   const updateHistorico = useUpdateAtendimentoHistorico();
   const deleteHistorico = useDeleteAtendimentoHistorico();
-  const uploadAnexo     = useUploadAnexo();
+  const uploadAnexo = useUploadAnexo();
 
-  const [showForm,  setShowForm]  = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [hData,     setHData]     = useState("");
-  const [hHora,     setHHora]     = useState("");
-  const [hDets,     setHDets]     = useState("");
-  const [hStatus,   setHStatus]   = useState("");
-  const [pdf,       setPdf]       = useState<File | null>(null);
+  const [hData, setHData] = useState("");
+  const [hHora, setHHora] = useState("");
+  const [hDets, setHDets] = useState("");
+  const [hStatus, setHStatus] = useState("");
+  const [pdf, setPdf] = useState<File | null>(null);
 
-  const form = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { data:"",hora:"",operador_nome:"",canal:"",status:"",motivo:"",observacoes:"",cliente_nome:"",cliente_telefone:"",cliente_email:"",condominio_nome:"" } });
+  const form = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      data: "", hora: "", operador_nome: "", canal: "", status: "", motivo: "",
+      observacoes: "", cliente_nome: "", cliente_telefone: "", cliente_email: "", condominio_nome: ""
+    }
+  });
 
   useEffect(() => {
     if (open && atendimento) {
@@ -176,6 +184,18 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
       setShowForm(false);
     }
   }, [open, atendimento, form]);
+
+  if (!atendimento) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="right" className="w-full sm:max-w-[800px]">
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   const saveHistorico = async () => {
     if (!atendimento || !hData || !hHora || !hDets || !hStatus) return;
@@ -203,16 +223,51 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side={isMobile ? "bottom" : "right"} className={cn("flex flex-col p-0 gap-0", isMobile ? "h-[95vh]" : "w-full sm:max-w-[800px]")}>
-        <SheetHeader className="px-6 py-4 border-b bg-white shrink-0">
-          <SheetTitle className="text-xl font-bold flex items-center gap-2"><UserCheck className="h-5 w-5 text-orange-500" /> Editar Atendimento</SheetTitle>
+        <SheetHeader className="px-6 py-4 border-b bg-orange-50 shrink-0 flex flex-row items-center justify-between space-y-0">
+          <div className="flex flex-col">
+            <SheetTitle className="text-xl font-bold flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-orange-600" />
+              Editar Atendimento
+            </SheetTitle>
+            <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Interface Atualizada</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="bg-white border-orange-200 text-orange-700 hover:bg-orange-50 font-bold" onClick={() => {
+              const printWindow = window.open("", "_blank");
+              if (printWindow) {
+                printWindow.document.write(`
+                  <html>
+                    <head>
+                      <title>Relatório de Atendimento</title>
+                      <style>body { font-family: sans-serif; padding: 30px; }</style>
+                    </head>
+                    <body>
+                      <h1 style="color: #f97316">RELATÓRIO DE ATENDIMENTO</h1>
+                      <p><strong>Cliente:</strong> ${atendimento.cliente_nome}</p>
+                      <p><strong>Condomínio:</strong> ${atendimento.condominio_nome}</p>
+                      <hr/>
+                      <h2>Histórico</h2>
+                      ${historico?.map(h => `<div><strong>${h.data}:</strong> ${h.detalhes}</div>`).join("")}
+                    </body>
+                  </html>
+                `);
+                printWindow.document.close();
+                printWindow.print();
+              }
+            }}>
+              <Printer className="h-4 w-4 mr-2" />
+              SALVAR PDF
+            </Button>
+            <button onClick={() => onOpenChange(false)} className="lg:hidden p-2 text-slate-400 hover:text-slate-600"><X className="h-5 w-5" /></button>
+          </div>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50 space-y-8">
           <Form {...form}>
             <form className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FormField control={form.control} name="data" render={({ field }) => ( <FormItem><FormLabel>Data *</FormLabel><Input type="date" {...field} /></FormItem> )} />
-                <FormField control={form.control} name="hora" render={({ field }) => ( <FormItem><FormLabel>Hora *</FormLabel><Input type="time" {...field} /></FormItem> )} />
+                <FormField control={form.control} name="data" render={({ field }) => (<FormItem><FormLabel>Data *</FormLabel><Input type="date" {...field} /></FormItem>)} />
+                <FormField control={form.control} name="hora" render={({ field }) => (<FormItem><FormLabel>Hora *</FormLabel><Input type="time" {...field} /></FormItem>)} />
                 <FormField control={form.control} name="status" render={({ field }) => (
                   <FormItem><FormLabel>Status *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger>
@@ -220,8 +275,8 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
                     </Select></FormItem>
                 )} />
               </div>
-              <FormField control={form.control} name="cliente_nome" render={({ field }) => ( <FormItem><FormLabel>Nome do Cliente *</FormLabel><Input {...field} /></FormItem> )} />
-              <FormField control={form.control} name="observacoes" render={({ field }) => ( <FormItem><FormLabel>Observações Gerais</FormLabel><Textarea rows={3} {...field} /></FormItem> )} />
+              <FormField control={form.control} name="cliente_nome" render={({ field }) => (<FormItem><FormLabel>Nome do Cliente *</FormLabel><Input {...field} /></FormItem>)} />
+              <FormField control={form.control} name="observacoes" render={({ field }) => (<FormItem><FormLabel>Observações Gerais</FormLabel><Textarea rows={3} {...field} /></FormItem>)} />
             </form>
           </Form>
 
@@ -229,28 +284,58 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
           <div className="space-y-6 pb-20">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold flex items-center gap-2"><History className="h-5 w-5 text-orange-500" /> Histórico do Atendimento</h3>
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <History className="h-5 w-5 text-orange-500" />
+                Histórico do Atendimento ({historico?.length || 0})
+              </h3>
               <Button type="button" size="sm" onClick={() => { setEditingId(null); setHData(""); setHHora(""); setHDets(""); setHStatus(""); setPdf(null); setShowForm(true); }} className="bg-orange-500 text-white font-bold h-9">
                 <Plus className="h-4 w-4 mr-1" /> ADICIONAR REGISTRO
               </Button>
             </div>
 
             {showForm && (
-              <div className="bg-white rounded-xl border-2 border-orange-200 p-5 space-y-4 shadow-sm">
+              <div className="bg-white rounded-xl border-2 border-orange-200 p-5 space-y-4 shadow-md animate-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2 text-orange-600 font-bold text-sm mb-2">
+                  <Pencil className="h-4 w-4" />
+                  {editingId ? "EDITANDO REGISTRO" : "NOVO REGISTRO NO HISTÓRICO"}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1"><label className="text-[11px] font-bold uppercase text-slate-500">Data</label><Input type="date" value={hData} onChange={e=>setHData(e.target.value)} /></div>
-                  <div className="space-y-1"><label className="text-[11px] font-bold uppercase text-slate-500">Hora</label><Input type="time" value={hHora} onChange={e=>setHHora(e.target.value)} /></div>
-                  <div className="space-y-1"><label className="text-[11px] font-bold uppercase text-slate-500">Status</label>
-                    <select value={hStatus} onChange={e=>setHStatus(e.target.value)} className="w-full h-10 border rounded px-3 text-sm">
-                      <option value="">Selecione...</option>{H_STATUS.map(s=><option key={s} value={s}>{s}</option>)}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold uppercase text-slate-500">Data do Evento</label>
+                    <Input type="date" value={hData} onChange={e => setHData(e.target.value)} className="border-slate-300 focus:border-orange-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold uppercase text-slate-500">Hora</label>
+                    <Input type="time" value={hHora} onChange={e => setHHora(e.target.value)} className="border-slate-300 focus:border-orange-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold uppercase text-slate-500">Status da Etapa</label>
+                    <select value={hStatus} onChange={e => setHStatus(e.target.value)} className="w-full h-10 border border-slate-300 rounded-md px-3 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
+                      <option value="">Selecione o status...</option>
+                      {H_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 </div>
-                <div className="space-y-1"><label className="text-[11px] font-bold uppercase text-slate-500">Detalhes da conversa</label><Textarea value={hDets} onChange={e=>setHDets(e.target.value)} placeholder="O que foi conversado?" /></div>
-                <PdfField value={pdf} onChange={setPdf} />
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" size="sm" onClick={()=>setShowForm(false)}>Cancelar</Button>
-                  <Button type="button" size="sm" onClick={saveHistorico} disabled={saving} className="bg-orange-600 text-white font-bold px-6">{saving ? "Salvando..." : "Salvar Registro"}</Button>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold uppercase text-slate-500">Detalhes da Interação</label>
+                  <Textarea value={hDets} onChange={e => setHDets(e.target.value)} placeholder="Descreva o que foi tratado com o clienteneste momento..." className="min-h-[100px] border-slate-300 focus:border-orange-500" />
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 border-dashed">
+                  <label className="text-[11px] font-bold uppercase text-slate-500 flex items-center gap-1 mb-3">
+                    <Paperclip className="h-3 w-3 text-orange-500" />
+                    Documento de Comprovação (PDF)
+                  </label>
+                  <PdfField value={pdf} onChange={setPdf} />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+                  <Button type="button" variant="outline" size="sm" onClick={() => { setShowForm(false); setEditingId(null); }} className="h-10 px-4">Cancelar</Button>
+                  <Button type="button" size="sm" onClick={saveHistorico} disabled={saving} className="bg-orange-600 text-white font-bold px-8 h-10 shadow-lg hover:bg-orange-700">
+                    {saving ? "Salvando..." : editingId ? "Atualizar Histórico" : "Salvar no Histórico"}
+                  </Button>
                 </div>
               </div>
             )}
@@ -265,8 +350,8 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
                       <Badge variant="outline" className={cn("text-[10px] uppercase font-bold px-2 py-0.5", historicoStatusColor(item.status))}>{item.status}</Badge>
                     </div>
                     <div className="flex gap-1">
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-orange-600 hover:bg-orange-50" onClick={() => { setEditingId(item.id); setHData(item.data||""); setHHora(safeHora(item.hora)); setHDets(item.detalhes||""); setHStatus(item.status||""); setShowForm(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={()=>{ if(confirm("Excluir?")) deleteHistorico.mutate(item); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-orange-600 hover:bg-orange-50" onClick={() => { setEditingId(item.id); setHData(item.data || ""); setHHora(safeHora(item.hora)); setHDets(item.detalhes || ""); setHStatus(item.status || ""); setShowForm(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => { if (confirm("Excluir?")) deleteHistorico.mutate(item); }}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
                   <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border-l-4 border-orange-500 italic">"{item.detalhes || "—"}"</p>
