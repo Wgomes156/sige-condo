@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -41,30 +42,40 @@ import {
   User,
   DollarSign,
   ClipboardList,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { useCondominios } from "@/hooks/useCondominios";
 import { useUnidades } from "@/hooks/useUnidades";
 import { useContasBancarias } from "@/hooks/useContasBancarias";
 import { useCreateBoleto } from "@/hooks/useBoletos";
-import { gerarBoletoPDF } from "@/lib/boletoExportUtils";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  validarPreRequisitos,
+  construirDadosBoleto,
+  type BoletoCalculado,
+} from "@/services/boletoService";
+import { BoletoTemplate, gerarBoletoBancarioPDF } from "@/components/boletos/BoletoTemplate";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
-// ── Etapa 1 ──────────────────────────────────────────────────────────────────
+// ── Step schemas ──────────────────────────────────────────────────────────────
+
 const step1Schema = z.object({
   condominio_id: z.string().min(1, "Selecione um condomínio"),
   unidade_id: z.string().min(1, "Selecione uma unidade"),
 });
 
-// ── Etapa 2 ──────────────────────────────────────────────────────────────────
 const step2Schema = z.object({
   referencia: z.string().min(1, "Informe a descrição / referência"),
   valor: z
     .string()
     .min(1, "Informe o valor")
-    .refine((v) => !isNaN(parseFloat(v.replace(",", "."))) && parseFloat(v.replace(",", ".")) > 0, {
-      message: "Valor deve ser maior que zero",
-    }),
+    .refine(
+      (v) => !isNaN(parseFloat(v.replace(",", "."))) && parseFloat(v.replace(",", ".")) > 0,
+      { message: "Valor deve ser maior que zero" }
+    ),
   data_vencimento: z
     .string()
     .min(1, "Informe a data de vencimento")
@@ -89,16 +100,20 @@ interface EmissaoBoletoWizardProps {
 const steps = [
   { label: "Condômino", icon: User },
   { label: "Dados do Boleto", icon: DollarSign },
-  { label: "Revisão", icon: ClipboardList },
+  { label: "Pré-visualização", icon: ClipboardList },
   { label: "Emitido", icon: CheckCircle2 },
 ];
 
 export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardProps) {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
+  const [boletoPreview, setBoletoPreview] = useState<BoletoCalculado | null>(null);
   const [boletoEmitido, setBoletoEmitido] = useState<any>(null);
   const [linhaCopied, setLinhaCopied] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [erroInsert, setErroInsert] = useState<string | null>(null);
 
   const { data: condominios } = useCondominios();
   const { contas } = useContasBancarias();
@@ -131,21 +146,109 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
     contas.find((c) => c.condominio_id === condominioId && c.ativa) ||
     contas.find((c) => c.condominio_id === condominioId);
 
+  const validacao = validarPreRequisitos(contaCondominio);
   const condominioSelecionado = condominios?.find((c) => c.id === condominioId);
   const unidadeSelecionada = unidades?.find((u) => u.id === form1.watch("unidade_id"));
 
   const handleStep1Submit = (data: Step1Data) => {
+    if (!validacao.valido) {
+      toast.error("Complete os dados bancários antes de emitir boletos.");
+      return;
+    }
     setStep1Data(data);
     setCurrentStep(1);
   };
 
-  const handleStep2Submit = (data: Step2Data) => {
+  // Resolve nosso_numero: max(conta_seq, db_max+1, timestamp_based)
+  const resolverNossoNumero = async (): Promise<string> => {
+    // Timestamp seed — changes every second, virtually unique
+    const tsSeed = Math.floor(Date.now() / 1000) % 90000000 + 10000000;
+    let candidato = tsSeed;
+
+    // 1. Conta's own sequence
+    try {
+      const { data: contaData } = await supabase
+        .from("contas_bancarias")
+        .select("nosso_numero_atual, nosso_numero_inicio")
+        .eq("id", contaCondominio!.id)
+        .single();
+      if (contaData) {
+        const seq = contaData.nosso_numero_atual ?? (contaData.nosso_numero_inicio ?? 1);
+        candidato = Math.max(candidato, seq);
+      }
+    } catch { /* ignore */ }
+
+    // 2. Max nosso_numero currently in boletos table (pull all, parse client-side)
+    try {
+      const { data: rows } = await supabase
+        .from("boletos")
+        .select("nosso_numero")
+        .not("nosso_numero", "is", null);
+      if (rows && rows.length > 0) {
+        const nums = rows
+          .map((r: any) => parseInt(r.nosso_numero, 10))
+          .filter((n: number) => !isNaN(n));
+        if (nums.length > 0) {
+          candidato = Math.max(candidato, Math.max(...nums) + 1);
+        }
+      }
+    } catch { /* ignore */ }
+
+    return candidato.toString().padStart(8, "0");
+  };
+
+  // Build the BoletoCalculado preview before showing step 3
+  const handleStep2Submit = async (data: Step2Data) => {
+    if (!step1Data || !contaCondominio) return;
+
+    const valor = parseFloat(data.valor.replace(",", "."));
+    const multa = data.multa_percentual ? parseFloat(data.multa_percentual) : 2;
+    const juros = data.juros_dia ? parseFloat(data.juros_dia) : 0.033;
+
+    const nossoNumero = await resolverNossoNumero();
+
+    const unidade = unidadeSelecionada
+      ? `${unidadeSelecionada.bloco ? unidadeSelecionada.bloco + " - " : ""}${unidadeSelecionada.codigo}`
+      : "";
+
+    const instrucoesList = [
+      `Multa de ${multa}% após o vencimento`,
+      `Juros de ${juros}% ao dia`,
+      ...(data.instrucoes ? [data.instrucoes] : []),
+      "Não receber após 30 dias do vencimento",
+    ];
+
+    const calculado = construirDadosBoleto(contaCondominio, {
+      nossoNumero,
+      valorCentavos: Math.round(valor * 100),
+      dataVencimento: new Date(data.data_vencimento + "T12:00:00"),
+      dataEmissao: new Date(),
+      descricao: data.referencia,
+      instrucoes: instrucoesList,
+      multa,
+      juros,
+      descontoValor: data.desconto_valor
+        ? parseFloat(data.desconto_valor.replace(",", "."))
+        : undefined,
+      descontoAte: data.desconto_ate
+        ? new Date(data.desconto_ate + "T12:00:00")
+        : undefined,
+      sacadoNome: (unidadeSelecionada as any)?.morador_nome || "Condômino",
+      sacadoCpf: (unidadeSelecionada as any)?.morador_cpf || undefined,
+      sacadoUnidade: unidade,
+      condominioNome: condominioSelecionado?.nome,
+      condominioId: step1Data.condominio_id,
+    });
+
+    setBoletoPreview(calculado);
     setStep2Data(data);
     setCurrentStep(2);
   };
 
   const handleConfirmar = async () => {
-    if (!step1Data || !step2Data) return;
+    if (!step1Data || !step2Data || !boletoPreview || !contaCondominio) return;
+    setIsGenerating(true);
+    setErroInsert(null);
 
     const unidade = unidadeSelecionada
       ? `${unidadeSelecionada.bloco ? unidadeSelecionada.bloco + " - " : ""}${unidadeSelecionada.codigo}`
@@ -159,6 +262,7 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
       const boleto = await createBoleto.mutateAsync({
         condominio_id: step1Data.condominio_id,
         unidade_id: step1Data.unidade_id,
+        conta_bancaria_id: contaCondominio.id,
         unidade,
         morador_nome: (unidadeSelecionada as any)?.morador_nome || undefined,
         morador_email: (unidadeSelecionada as any)?.morador_email || undefined,
@@ -166,34 +270,51 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
         valor,
         data_vencimento: step2Data.data_vencimento,
         referencia: step2Data.referencia,
-        observacoes: step2Data.instrucoes || undefined,
+        observacoes: `Cód.Barras: ${boletoPreview.codigoBarras} | Linha: ${boletoPreview.linhaDigitavel}`,
         multa_percentual: multa,
         juros_dia: juros,
-        desconto_valor: step2Data.desconto_valor ? parseFloat(step2Data.desconto_valor.replace(",", ".")) : undefined,
+        desconto_valor: step2Data.desconto_valor
+          ? parseFloat(step2Data.desconto_valor.replace(",", "."))
+          : undefined,
         desconto_ate: step2Data.desconto_ate || undefined,
         instrucoes: step2Data.instrucoes || undefined,
-        nosso_numero: null,
+        nosso_numero: boletoPreview.nossoNumero,
       });
+
+      // Only increment nosso_numero_atual after successful insert
+      const proximoNum = parseInt(boletoPreview.nossoNumero, 10);
+      await supabase
+        .from("contas_bancarias")
+        .update({ nosso_numero_atual: proximoNum + 1 })
+        .eq("id", contaCondominio.id);
 
       setBoletoEmitido({
         ...boleto,
         condominios: { nome: condominioSelecionado?.nome || "" },
+        boletoCalculado: boletoPreview,
       });
       setCurrentStep(3);
-    } catch {
-      // error handled by mutation
+    } catch (err: any) {
+      const msg = err?.message || err?.details || JSON.stringify(err) || "Erro desconhecido";
+      console.error("Erro ao confirmar boleto:", { code: err?.code, message: err?.message, details: err?.details, hint: err?.hint });
+      setErroInsert(`[${err?.code || "ERR"}] ${msg}`);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const handleBaixarPDF = () => {
-    if (!boletoEmitido) return;
-    gerarBoletoPDF(boletoEmitido);
+  const handleBaixarPDF = async () => {
+    if (!boletoEmitido?.boletoCalculado) return;
+    try {
+      await gerarBoletoBancarioPDF(boletoEmitido.boletoCalculado);
+    } catch {
+      toast.error("Erro ao gerar PDF do boleto.");
+    }
   };
 
   const handleCopiarLinha = () => {
-    const linha = boletoEmitido?.nosso_numero
-      ? `000${boletoEmitido.nosso_numero}.00 00000.000000 00000.000000 0 00000000${Math.round(boletoEmitido.valor * 100).toString().padStart(10, "0")}`
-      : "Linha digitável disponível após registro bancário";
+    const linha = boletoPreview?.linhaDigitavel || boletoEmitido?.boletoCalculado?.linhaDigitavel || "";
+    if (!linha) return;
     navigator.clipboard.writeText(linha).then(() => {
       setLinhaCopied(true);
       setTimeout(() => setLinhaCopied(false), 2000);
@@ -204,7 +325,9 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
     setCurrentStep(0);
     setStep1Data(null);
     setStep2Data(null);
+    setBoletoPreview(null);
     setBoletoEmitido(null);
+    setErroInsert(null);
     form1.reset();
     form2.reset();
     onOpenChange(false);
@@ -215,13 +338,13 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
 
   return (
     <Dialog open={open} onOpenChange={handleFechar}>
-      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto p-0">
+      <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto p-0">
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Emitir Boleto</DialogTitle>
-          <DialogDescription className="sr-only">Wizard de emissão de boleto em 4 passos</DialogDescription>
+          <DialogDescription className="sr-only">Wizard de emissão de boleto bancário</DialogDescription>
         </DialogHeader>
 
-        {/* Indicador de Passos */}
+        {/* Step Indicator */}
         <div className="flex items-center px-6 py-4 gap-0 border-b bg-muted/30">
           {steps.map((step, idx) => {
             const Icon = step.icon;
@@ -254,93 +377,133 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
         </div>
 
         <div className="p-6">
-          {/* ── PASSO 1: Selecionar Condomínio e Unidade ── */}
+          {/* ── STEP 1: Selecionar Condômino ── */}
           {currentStep === 0 && (
             <Form {...form1}>
               <form onSubmit={form1.handleSubmit(handleStep1Submit)} className="space-y-5">
-                <div>
-                  <h2 className="text-base font-semibold flex items-center gap-2 mb-4">
-                    <Building2 className="h-4 w-4 text-primary" />
-                    Selecionar Condômino
-                  </h2>
-                  <div className="space-y-4">
-                    <FormField
-                      control={form1.control}
-                      name="condominio_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Condomínio *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o condomínio" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {condominios?.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <h2 className="text-base font-semibold flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  Selecionar Condômino
+                </h2>
 
-                    <FormField
-                      control={form1.control}
-                      name="unidade_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Unidade / Condômino *</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            disabled={!condominioId}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={condominioId ? "Selecione a unidade" : "Selecione o condomínio primeiro"} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {unidades?.map((u) => (
-                                <SelectItem key={u.id} value={u.id}>
-                                  <div className="flex items-center gap-2">
-                                    {u.bloco && <Badge variant="outline" className="text-xs">{u.bloco}</Badge>}
-                                    <span>{u.codigo}</span>
-                                    {(u as any).morador_nome && (
-                                      <span className="text-muted-foreground text-xs">– {(u as any).morador_nome}</span>
-                                    )}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Info da unidade selecionada */}
-                    {unidadeSelecionada && (
-                      <div className="rounded-lg bg-muted/50 border p-3 text-sm space-y-1">
-                        <p className="font-medium">
-                          Unidade: {unidadeSelecionada.bloco ? `${unidadeSelecionada.bloco} - ` : ""}{unidadeSelecionada.codigo}
-                        </p>
-                        {(unidadeSelecionada as any).morador_nome && (
-                          <p className="text-muted-foreground">Morador: {(unidadeSelecionada as any).morador_nome}</p>
-                        )}
-                        {(unidadeSelecionada as any).morador_email && (
-                          <p className="text-muted-foreground">{(unidadeSelecionada as any).morador_email}</p>
-                        )}
-                      </div>
+                <div className="space-y-4">
+                  <FormField
+                    control={form1.control}
+                    name="condominio_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Condomínio *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o condomínio" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {condominios?.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
+                  />
+
+                  {/* Validação bancária inline */}
+                  {condominioId && !validacao.valido && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="space-y-2">
+                        <p className="font-semibold">Dados bancários incompletos:</p>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          {validacao.erros.map((e, i) => <li key={i}>{e}</li>)}
+                        </ul>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 gap-2"
+                          onClick={() => {
+                            handleFechar();
+                            navigate("/contas-bancarias");
+                          }}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Ir para Dados Bancários
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Conta bancária vinculada */}
+                  {condominioId && validacao.valido && contaCondominio && (
+                    <div className="rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 p-3 text-sm space-y-1">
+                      <p className="font-medium text-green-800 dark:text-green-300 flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Pagamentos creditados em:
+                      </p>
+                      <p className="text-green-700 dark:text-green-400">
+                        <strong>{contaCondominio.banco_codigo} — {contaCondominio.banco_nome}</strong>
+                        {" | "}Ag {contaCondominio.agencia}{contaCondominio.agencia_digito ? `-${contaCondominio.agencia_digito}` : ""}
+                        {" | "}Cc {contaCondominio.conta}{contaCondominio.conta_digito ? `-${contaCondominio.conta_digito}` : ""}
+                      </p>
+                      <p className="text-green-600 dark:text-green-500 text-xs">{contaCondominio.titular_nome}</p>
+                    </div>
+                  )}
+
+                  <FormField
+                    control={form1.control}
+                    name="unidade_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unidade / Condômino *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={!condominioId}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={condominioId ? "Selecione a unidade" : "Selecione o condomínio primeiro"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {unidades?.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                <div className="flex items-center gap-2">
+                                  {u.bloco && <Badge variant="outline" className="text-xs">{u.bloco}</Badge>}
+                                  <span>{u.codigo}</span>
+                                  {(u as any).morador_nome && (
+                                    <span className="text-muted-foreground text-xs">– {(u as any).morador_nome}</span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {unidadeSelecionada && (
+                    <div className="rounded-lg bg-muted/50 border p-3 text-sm space-y-1">
+                      <p className="font-medium">
+                        Unidade: {unidadeSelecionada.bloco ? `${unidadeSelecionada.bloco} - ` : ""}{unidadeSelecionada.codigo}
+                      </p>
+                      {(unidadeSelecionada as any).morador_nome && (
+                        <p className="text-muted-foreground">Morador: {(unidadeSelecionada as any).morador_nome}</p>
+                      )}
+                      {(unidadeSelecionada as any).morador_email && (
+                        <p className="text-muted-foreground">{(unidadeSelecionada as any).morador_email}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end pt-2">
-                  <Button type="submit" className="gap-2">
+                  <Button type="submit" disabled={!validacao.valido} className="gap-2">
                     Próximo
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -349,7 +512,7 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
             </Form>
           )}
 
-          {/* ── PASSO 2: Dados do Boleto ── */}
+          {/* ── STEP 2: Dados do Boleto ── */}
           {currentStep === 1 && (
             <Form {...form2}>
               <form onSubmit={form2.handleSubmit(handleStep2Submit)} className="space-y-5">
@@ -416,23 +579,18 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Multa por Atraso (%)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="2" {...field} />
-                        </FormControl>
+                        <FormControl><Input placeholder="2" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form2.control}
                     name="juros_dia"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Juros ao Dia (%)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0,033" {...field} />
-                        </FormControl>
+                        <FormControl><Input placeholder="0,033" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -449,23 +607,18 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Valor do Desconto (R$)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0,00" {...field} />
-                        </FormControl>
+                        <FormControl><Input placeholder="0,00" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form2.control}
                     name="desconto_ate"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Válido até</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
+                        <FormControl><Input type="date" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -477,11 +630,11 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
                   name="instrucoes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Instruções ao Sacado / Banco</FormLabel>
+                      <FormLabel>Instruções adicionais ao Sacado</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Ex: Não receber após o vencimento. Após vencimento cobrar multa e juros."
-                          className="min-h-[70px]"
+                          placeholder="Ex: Não receber após o vencimento."
+                          className="min-h-[60px]"
                           {...field}
                         />
                       </FormControl>
@@ -492,11 +645,10 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
 
                 <div className="flex justify-between pt-2">
                   <Button type="button" variant="outline" onClick={() => setCurrentStep(0)} className="gap-2">
-                    <ChevronLeft className="h-4 w-4" />
-                    Voltar
+                    <ChevronLeft className="h-4 w-4" />Voltar
                   </Button>
                   <Button type="submit" className="gap-2">
-                    Revisar
+                    Pré-visualizar
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -504,144 +656,62 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
             </Form>
           )}
 
-          {/* ── PASSO 3: Revisão ── */}
-          {currentStep === 2 && step1Data && step2Data && (
+          {/* ── STEP 3: Pré-visualização do Boleto ── */}
+          {currentStep === 2 && boletoPreview && contaCondominio && (
             <div className="space-y-5">
               <h2 className="text-base font-semibold flex items-center gap-2">
                 <ClipboardList className="h-4 w-4 text-primary" />
-                Revisão do Boleto
+                Pré-visualização do Boleto
               </h2>
 
-              {/* Cedente */}
-              {contaCondominio && (
-                <div className="rounded-lg border p-4 space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cedente (Condomínio)</p>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Nome</p>
-                      <p className="font-medium">{contaCondominio.titular_nome}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">CPF/CNPJ</p>
-                      <p className="font-medium font-mono">{contaCondominio.titular_documento}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Banco</p>
-                      <p className="font-medium">{contaCondominio.banco_codigo} – {contaCondominio.banco_nome}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Ag / Conta</p>
-                      <p className="font-medium font-mono">
-                        {contaCondominio.agencia}{contaCondominio.agencia_digito ? `-${contaCondominio.agencia_digito}` : ""} / {contaCondominio.conta}{contaCondominio.conta_digito ? `-${contaCondominio.conta_digito}` : ""}
-                      </p>
-                    </div>
-                    {contaCondominio.chave_pix && (
-                      <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">Chave Pix</p>
-                        <p className="font-medium font-mono">{contaCondominio.chave_pix}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+              {/* Destaque conta bancária */}
+              <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 p-3 text-sm">
+                <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
+                  Os pagamentos serão creditados na conta:
+                </p>
+                <p className="text-blue-800 dark:text-blue-300">
+                  Banco <strong>{contaCondominio.banco_codigo} — {contaCondominio.banco_nome}</strong>
+                  {" | "}Agência{" "}
+                  <strong>{contaCondominio.agencia}{contaCondominio.agencia_digito ? `-${contaCondominio.agencia_digito}` : ""}</strong>
+                  {" | "}Conta{" "}
+                  <strong>{contaCondominio.conta}{contaCondominio.conta_digito ? `-${contaCondominio.conta_digito}` : ""}</strong>
+                </p>
+                <p className="text-blue-700 dark:text-blue-400 text-xs mt-1">{contaCondominio.titular_nome}</p>
+              </div>
+
+              {/* Template visual */}
+              <div className="overflow-x-auto rounded border">
+                <BoletoTemplate dados={boletoPreview} />
+              </div>
+
+              {erroInsert && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <p className="font-semibold mb-1">Erro ao gerar boleto:</p>
+                    <p className="text-xs font-mono break-all">{erroInsert}</p>
+                    <p className="text-xs mt-1 text-muted-foreground">Copie esta mensagem e informe ao suporte se o erro persistir.</p>
+                  </AlertDescription>
+                </Alert>
               )}
-
-              {/* Sacado */}
-              <div className="rounded-lg border p-4 space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Sacado (Condômino)</p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Condomínio</p>
-                    <p className="font-medium">{condominioSelecionado?.nome}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Unidade</p>
-                    <p className="font-medium">
-                      {unidadeSelecionada?.bloco ? `${unidadeSelecionada.bloco} - ` : ""}
-                      {unidadeSelecionada?.codigo}
-                    </p>
-                  </div>
-                  {(unidadeSelecionada as any)?.morador_nome && (
-                    <div className="col-span-2">
-                      <p className="text-xs text-muted-foreground">Morador</p>
-                      <p className="font-medium">{(unidadeSelecionada as any).morador_nome}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Dados financeiros */}
-              <div className="rounded-lg border p-4 space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Dados do Boleto</p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="col-span-2">
-                    <p className="text-xs text-muted-foreground">Descrição / Referência</p>
-                    <p className="font-medium">{step2Data.referencia}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Valor</p>
-                    <p className="font-medium text-green-700">
-                      {formatCurrency(parseFloat(step2Data.valor.replace(",", ".")))}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Vencimento</p>
-                    <p className="font-medium">
-                      {new Date(step2Data.data_vencimento + "T12:00:00").toLocaleDateString("pt-BR")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Multa por Atraso</p>
-                    <p className="font-medium">{step2Data.multa_percentual || "2"}%</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Juros ao Dia</p>
-                    <p className="font-medium">{step2Data.juros_dia || "0,033"}%</p>
-                  </div>
-                  {step2Data.desconto_valor && (
-                    <>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Desconto</p>
-                        <p className="font-medium text-blue-600">
-                          {formatCurrency(parseFloat(step2Data.desconto_valor.replace(",", ".")))}
-                        </p>
-                      </div>
-                      {step2Data.desconto_ate && (
-                        <div>
-                          <p className="text-xs text-muted-foreground">Desconto válido até</p>
-                          <p className="font-medium">
-                            {new Date(step2Data.desconto_ate + "T12:00:00").toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  {step2Data.instrucoes && (
-                    <div className="col-span-2">
-                      <p className="text-xs text-muted-foreground">Instruções</p>
-                      <p className="text-sm">{step2Data.instrucoes}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
 
               <div className="flex justify-between pt-2">
                 <Button variant="outline" onClick={() => setCurrentStep(1)} className="gap-2">
-                  <ChevronLeft className="h-4 w-4" />
-                  Voltar
+                  <ChevronLeft className="h-4 w-4" />Voltar e Editar
                 </Button>
                 <Button
                   onClick={handleConfirmar}
-                  disabled={createBoleto.isPending}
+                  disabled={isGenerating || createBoleto.isPending}
                   className="gap-2 font-bold"
                 >
-                  {createBoleto.isPending ? "Gerando..." : "Gerar Boleto"}
+                  {isGenerating || createBoleto.isPending ? "Gerando..." : "Confirmar e Gerar Boleto"}
                   <CheckCircle2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           )}
 
-          {/* ── PASSO 4: Sucesso ── */}
+          {/* ── STEP 4: Sucesso ── */}
           {currentStep === 3 && boletoEmitido && (
             <div className="space-y-5 text-center">
               <div className="flex flex-col items-center gap-3 py-2">
@@ -651,7 +721,7 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
                 <div>
                   <h2 className="text-lg font-bold">Boleto Emitido com Sucesso!</h2>
                   <p className="text-sm text-muted-foreground">
-                    {condominioSelecionado?.nome} —{" "}
+                    {condominioSelecionado?.nome}{" — "}
                     {unidadeSelecionada?.bloco ? `${unidadeSelecionada.bloco} - ` : ""}
                     {unidadeSelecionada?.codigo}
                   </p>
@@ -686,12 +756,15 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Linha Digitável</p>
                   <div className="flex gap-2 items-center">
-                    <p className="font-mono text-xs bg-muted rounded px-2 py-1 flex-1 truncate">
-                      {boletoEmitido.nosso_numero
-                        ? `Disponível após registro no banco`
-                        : "Disponível após registro no banco"}
+                    <p className="font-mono text-xs bg-muted rounded px-2 py-1 flex-1 break-all">
+                      {boletoEmitido.boletoCalculado?.linhaDigitavel || "—"}
                     </p>
-                    <Button variant="outline" size="sm" onClick={handleCopiarLinha} className="shrink-0 gap-1 text-xs">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopiarLinha}
+                      className="shrink-0 gap-1 text-xs"
+                    >
                       <Copy className="h-3.5 w-3.5" />
                       {linhaCopied ? "Copiado!" : "Copiar"}
                     </Button>
@@ -701,31 +774,25 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Button variant="outline" onClick={handleBaixarPDF} className="gap-2 w-full">
-                  <Download className="h-4 w-4" />
-                  Baixar PDF
+                  <Download className="h-4 w-4" />Baixar PDF
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
                     const email = (unidadeSelecionada as any)?.morador_email;
-                    if (email) {
-                      toast.info(`Envio de e-mail para ${email} disponível na tela de boletos.`);
-                    } else {
-                      toast.warning("Nenhum e-mail cadastrado para esta unidade.");
-                    }
+                    if (email) toast.info(`Envio de e-mail para ${email} disponível na tela de boletos.`);
+                    else toast.warning("Nenhum e-mail cadastrado para esta unidade.");
                   }}
                   className="gap-2 w-full"
                 >
-                  <Mail className="h-4 w-4" />
-                  Enviar E-mail
+                  <Mail className="h-4 w-4" />Enviar E-mail
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => toast.info("Envio por WhatsApp será implementado em breve.")}
                   className="gap-2 w-full"
                 >
-                  <MessageCircle className="h-4 w-4" />
-                  WhatsApp
+                  <MessageCircle className="h-4 w-4" />WhatsApp
                 </Button>
               </div>
 

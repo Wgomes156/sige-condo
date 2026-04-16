@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Upload, Download, Mail, Wand2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, Upload, Download, Mail, Wand2, AlertTriangle, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { NovoBoletoForm } from "@/components/boletos/NovoBoletoForm";
 import { ImportarBoletosForm } from "@/components/boletos/ImportarBoletosForm";
 import { BoletosTable } from "@/components/boletos/BoletosTable";
@@ -14,6 +16,7 @@ import { useBoletos, useResumoBoletos, BoletoFilters } from "@/hooks/useBoletos"
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Boletos() {
+  const navigate = useNavigate();
   const [showNovoForm, setShowNovoForm] = useState(false);
   const [showImportForm, setShowImportForm] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
@@ -115,7 +118,29 @@ export default function Boletos() {
           </div>
         </div>
 
-        <BoletosCards resumo={resumo} isLoading={isLoadingResumo} />
+        {/* Warning banner */}
+      <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+        <AlertTriangle className="h-4 w-4 text-amber-600" />
+        <AlertDescription className="text-amber-800 dark:text-amber-300">
+          <span className="font-semibold">ATENÇÃO: </span>
+          Os boletos gerados por este sistema são para controle e cobrança interna do condomínio.
+          Para boletos com registro bancário oficial (compensação automática), é necessário contratar
+          o serviço de cobrança registrada com seu banco e configurar as credenciais da API bancária.
+          {canCreate && (
+            <Button
+              variant="link"
+              size="sm"
+              className="text-amber-700 dark:text-amber-400 h-auto p-0 ml-2 gap-1"
+              onClick={() => navigate("/contas-bancarias")}
+            >
+              <Settings className="h-3 w-3" />
+              Configurar dados bancários
+            </Button>
+          )}
+        </AlertDescription>
+      </Alert>
+
+      <BoletosCards resumo={resumo} isLoading={isLoadingResumo} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>

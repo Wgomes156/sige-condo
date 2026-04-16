@@ -45,9 +45,13 @@ import {
   FileText,
 } from "lucide-react";
 import { Boleto, useMarcarBoletoPago, useCancelarBoleto, useDeleteBoleto } from "@/hooks/useBoletos";
+import { useContasBancarias } from "@/hooks/useContasBancarias";
+import { construirDadosBoleto } from "@/services/boletoService";
+import { gerarBoletoBancarioPDF } from "@/components/boletos/BoletoTemplate";
 import { gerarBoletoPDF, imprimirBoleto } from "@/lib/boletoExportUtils";
 import { BoletoPreviewModal } from "./BoletoPreviewModal";
 import { EditarBoletoDialog } from "./EditarBoletoDialog";
+import { toast } from "sonner";
 
 interface BoletosTableProps {
   boletos: Boleto[];
@@ -71,6 +75,33 @@ export function BoletosTable({ boletos, isLoading }: BoletosTableProps) {
   const marcarPago = useMarcarBoletoPago();
   const cancelar = useCancelarBoleto();
   const deleteBoleto = useDeleteBoleto();
+  const { contas } = useContasBancarias();
+
+  const gerarPDFBoleto = async (boleto: Boleto) => {
+    const conta =
+      contas.find((c) => c.id === (boleto as any).conta_bancaria_id) ||
+      contas.find((c) => c.condominio_id === boleto.condominio_id && c.conta_padrao) ||
+      contas.find((c) => c.condominio_id === boleto.condominio_id && c.ativa) ||
+      contas.find((c) => c.condominio_id === boleto.condominio_id);
+    if (conta && boleto.nosso_numero) {
+      const dados = construirDadosBoleto(conta, {
+        nossoNumero: boleto.nosso_numero,
+        valorCentavos: Math.round(boleto.valor * 100),
+        dataVencimento: new Date(boleto.data_vencimento + "T12:00:00"),
+        dataEmissao: boleto.created_at ? new Date(boleto.created_at) : new Date(),
+        descricao: boleto.referencia,
+        instrucoes: ["Não receber após o vencimento", "Após vencimento cobrar multa e juros conforme legislação"],
+        sacadoNome: boleto.morador_nome || "Condômino",
+        sacadoUnidade: boleto.unidade,
+        condominioNome: boleto.condominios?.nome,
+        condominioId: boleto.condominio_id,
+      });
+      await gerarBoletoBancarioPDF(dados);
+    } else {
+      gerarBoletoPDF(boleto as any);
+      if (!conta) toast.warning("Dados bancários não encontrados. PDF gerado sem código de barras.");
+    }
+  };
 
   const totalPages = Math.ceil(boletos.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -181,10 +212,16 @@ export function BoletosTable({ boletos, isLoading }: BoletosTableProps) {
                 </div>
 
                 <div className="flex justify-end gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 h-10 gap-1" onClick={() => setPreviewBoleto(boleto)}>
+                    <Eye className="h-4 w-4" /> Ver
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 h-10 gap-1" onClick={() => setEditBoleto(boleto)}>
+                    <Pencil className="h-4 w-4" /> Editar
+                  </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex-1 h-10">
-                        Ações <MoreHorizontal className="h-4 w-4 ml-2" />
+                      <Button variant="ghost" size="sm" className="h-10 px-2">
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
@@ -194,10 +231,10 @@ export function BoletosTable({ boletos, isLoading }: BoletosTableProps) {
                       <DropdownMenuItem onClick={() => setEditBoleto(boleto)}>
                         <Pencil className="mr-2 h-4 w-4" /> Editar
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => imprimirBoleto(boleto)}>
+                      <DropdownMenuItem onClick={() => gerarPDFBoleto(boleto)}>
                         <Printer className="mr-2 h-4 w-4" /> Imprimir
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => gerarBoletoPDF(boleto)}>
+                      <DropdownMenuItem onClick={() => gerarPDFBoleto(boleto)}>
                         <Download className="mr-2 h-4 w-4" /> Baixar PDF
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -309,6 +346,13 @@ export function BoletosTable({ boletos, isLoading }: BoletosTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Visualizar" onClick={() => setPreviewBoleto(boleto)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => setEditBoleto(boleto)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -355,6 +399,7 @@ export function BoletosTable({ boletos, isLoading }: BoletosTableProps) {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

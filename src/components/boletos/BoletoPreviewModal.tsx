@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,11 +7,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Printer, Download, X } from "lucide-react";
+import { Printer, Download, X, Loader2 } from "lucide-react";
 import { Boleto } from "@/hooks/useBoletos";
-import { gerarBoletoPDF, imprimirBoleto } from "@/lib/boletoExportUtils";
-import { format } from "date-fns";
+import { useContasBancarias } from "@/hooks/useContasBancarias";
+import { construirDadosBoleto } from "@/services/boletoService";
+import { BoletoTemplate, gerarBoletoBancarioPDF } from "@/components/boletos/BoletoTemplate";
+import { gerarBoletoPDF } from "@/lib/boletoExportUtils";
+import { toast } from "sonner";
 
 interface BoletoPreviewModalProps {
   boleto: Boleto | null;
@@ -26,164 +29,164 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 };
 
 export function BoletoPreviewModal({ boleto, open, onOpenChange }: BoletoPreviewModalProps) {
+  const { contas } = useContasBancarias();
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
   if (!boleto) return null;
 
   const config = statusConfig[boleto.status] || statusConfig.pendente;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
+  // Find the bank account linked to this boleto
+  const conta =
+    contas.find((c) => c.id === (boleto as any).conta_bancaria_id) ||
+    contas.find((c) => c.condominio_id === boleto.condominio_id && c.conta_padrao) ||
+    contas.find((c) => c.condominio_id === boleto.condominio_id && c.ativa) ||
+    contas.find((c) => c.condominio_id === boleto.condominio_id);
+
+  // Reconstruct BoletoCalculado from stored data
+  const boletoCalculado =
+    conta && boleto.nosso_numero
+      ? construirDadosBoleto(conta, {
+          nossoNumero: boleto.nosso_numero,
+          valorCentavos: Math.round(boleto.valor * 100),
+          dataVencimento: new Date(boleto.data_vencimento + "T12:00:00"),
+          dataEmissao: boleto.created_at ? new Date(boleto.created_at) : new Date(),
+          descricao: boleto.referencia,
+          instrucoes: [
+            "Não receber após o vencimento",
+            "Após vencimento cobrar multa e juros conforme legislação",
+          ],
+          sacadoNome: boleto.morador_nome || "Condômino",
+          sacadoUnidade: boleto.unidade,
+          condominioNome: boleto.condominios?.nome,
+          condominioId: boleto.condominio_id,
+        })
+      : null;
+
+  const handleBaixarPDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      if (boletoCalculado) {
+        await gerarBoletoBancarioPDF(boletoCalculado);
+      } else {
+        // Fallback: old PDF without barcode
+        gerarBoletoPDF(boleto as any);
+        if (!conta) toast.warning("Dados bancários não encontrados. PDF gerado sem código de barras.");
+        else if (!boleto.nosso_numero) toast.warning("Nosso número não disponível. PDF gerado sem código de barras.");
+      }
+    } catch {
+      toast.error("Erro ao gerar PDF.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString + "T12:00:00"), "dd/MM/yyyy");
+  const handleImprimir = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      if (boletoCalculado) {
+        await gerarBoletoBancarioPDF(boletoCalculado);
+      } else {
+        const { imprimirBoleto } = await import("@/lib/boletoExportUtils");
+        imprimirBoleto(boleto as any);
+      }
+    } catch {
+      toast.error("Erro ao imprimir.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
-
-  const getDiasAtraso = () => {
-    if (boleto.status === "pago" || boleto.status === "cancelado") return null;
-    const hoje = new Date();
-    const vencimento = new Date(boleto.data_vencimento + "T12:00:00");
-    const diff = Math.floor((hoje.getTime() - vencimento.getTime()) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : null;
-  };
-
-  const diasAtraso = getDiasAtraso();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">Visualização do Boleto</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Cabeçalho com Condomínio e Status */}
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Condomínio</p>
-              <p className="text-lg font-semibold">{boleto.condominios?.nome || "Não informado"}</p>
-            </div>
+            <DialogTitle className="text-xl">Visualização do Boleto</DialogTitle>
             <Badge variant={config.variant} className="text-sm px-3 py-1">
               {config.label}
             </Badge>
           </div>
+        </DialogHeader>
 
-          <Separator />
-
-          {/* Grid com informações */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Dados do Morador */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Dados do Morador
-              </h4>
-              <div className="space-y-2">
+        <div className="space-y-4">
+          {/* Boleto Template com código de barras */}
+          {boletoCalculado ? (
+            <BoletoTemplate dados={boletoCalculado} />
+          ) : (
+            // Fallback simples quando não tem conta/nosso_numero
+            <div className="rounded-lg border p-4 space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Condomínio</p>
+                  <p className="font-medium">{boleto.condominios?.nome || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <p className="font-medium">{config.label}</p>
+                </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Unidade</p>
                   <p className="font-medium">{boleto.unidade}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Nome</p>
-                  <p className="font-medium">{boleto.morador_nome || "Não informado"}</p>
+                  <p className="text-xs text-muted-foreground">Morador</p>
+                  <p className="font-medium">{boleto.morador_nome || "—"}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Telefone</p>
-                  <p className="font-medium">{boleto.morador_telefone || "Não informado"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">E-mail</p>
-                  <p className="font-medium">{boleto.morador_email || "Não informado"}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Dados do Boleto */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Dados do Boleto
-              </h4>
-              <div className="space-y-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Referência</p>
                   <p className="font-medium">{boleto.referencia}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Nosso Número</p>
-                  <p className="font-medium">{boleto.nosso_numero || "N/A"}</p>
+                  <p className="font-medium font-mono">{boleto.nosso_numero || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Valor</p>
+                  <p className="font-bold text-lg text-green-700">
+                    {boleto.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Vencimento</p>
                   <p className="font-medium">
-                    {formatDate(boleto.data_vencimento)}
-                    {diasAtraso && (
-                      <span className="ml-2 text-sm text-destructive">
-                        ({diasAtraso} dia{diasAtraso !== 1 ? "s" : ""} de atraso)
-                      </span>
-                    )}
+                    {new Date(boleto.data_vencimento + "T12:00:00").toLocaleDateString("pt-BR")}
                   </p>
                 </div>
-                {boleto.data_pagamento && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Data de Pagamento</p>
-                    <p className="font-medium text-emerald-600">{formatDate(boleto.data_pagamento)}</p>
-                  </div>
-                )}
               </div>
+              {!conta && (
+                <p className="text-xs text-amber-600 bg-amber-50 rounded p-2">
+                  Dados bancários não vinculados — código de barras indisponível.
+                </p>
+              )}
+              {conta && !boleto.nosso_numero && (
+                <p className="text-xs text-amber-600 bg-amber-50 rounded p-2">
+                  Nosso número não disponível — código de barras indisponível.
+                  Este boleto foi criado sem número de registro.
+                </p>
+              )}
             </div>
-          </div>
-
-          <Separator />
-
-          {/* Valor em Destaque */}
-          <div className="bg-primary rounded-lg p-6 text-center">
-            <p className="text-sm text-primary-foreground/80 mb-1">Valor a Pagar</p>
-            <p className="text-3xl font-bold text-primary-foreground">
-              {formatCurrency(boleto.valor)}
-            </p>
-          </div>
+          )}
 
           {/* Observações */}
-          {boleto.observacoes && (
+          {boleto.observacoes && !boletoCalculado && (
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Observações
-              </h4>
-              <p className="text-sm bg-muted p-3 rounded-md">{boleto.observacoes}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Observações</p>
+              <p className="text-sm bg-muted p-3 rounded-md font-mono text-xs break-all">{boleto.observacoes}</p>
             </div>
           )}
 
-          {/* Categoria */}
-          {boleto.categorias_financeiras && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Categoria:</span>
-              <Badge 
-                variant="outline" 
-                style={{ 
-                  borderColor: boleto.categorias_financeiras.cor,
-                  color: boleto.categorias_financeiras.cor 
-                }}
-              >
-                {boleto.categorias_financeiras.nome}
-              </Badge>
-            </div>
-          )}
-
-          <Separator />
-
-          {/* Botões de Ação */}
-          <div className="flex justify-end gap-3">
+          {/* Botões */}
+          <div className="flex justify-end gap-3 pt-2 border-t">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              <X className="mr-2 h-4 w-4" />
-              Fechar
+              <X className="mr-2 h-4 w-4" />Fechar
             </Button>
-            <Button variant="outline" onClick={() => imprimirBoleto(boleto)}>
-              <Printer className="mr-2 h-4 w-4" />
+            <Button variant="outline" onClick={handleImprimir} disabled={isGeneratingPDF}>
+              {isGeneratingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
               Imprimir
             </Button>
-            <Button onClick={() => gerarBoletoPDF(boleto)}>
-              <Download className="mr-2 h-4 w-4" />
+            <Button onClick={handleBaixarPDF} disabled={isGeneratingPDF}>
+              {isGeneratingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               Baixar PDF
             </Button>
           </div>

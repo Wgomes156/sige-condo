@@ -44,6 +44,7 @@ export interface BoletoFilters {
 export interface BoletoInput {
   condominio_id: string;
   categoria_id?: string;
+  conta_bancaria_id?: string;
   unidade_id?: string;
   unidade: string;
   morador_nome?: string;
@@ -139,9 +140,35 @@ export function useCreateBoleto() {
 
   return useMutation({
     mutationFn: async (boleto: BoletoInput) => {
+      // Strip fields that don't exist in the boletos table schema
+      // (multa_percentual, juros_dia, desconto_valor, desconto_ate, instrucoes
+      //  are in the TS interface but not in the actual DB table)
+      const {
+        multa_percentual,
+        juros_dia,
+        desconto_valor,
+        desconto_ate,
+        instrucoes,
+        ...dbFields
+      } = boleto as any;
+
+      // Encode financial fields into observacoes so they're not lost
+      const extraInfo = [
+        multa_percentual != null ? `Multa: ${multa_percentual}%` : null,
+        juros_dia != null ? `Juros: ${juros_dia}%/dia` : null,
+        desconto_valor != null ? `Desconto: R$${desconto_valor}` : null,
+        desconto_ate ? `Desc.até: ${desconto_ate}` : null,
+        instrucoes ? instrucoes : null,
+      ].filter(Boolean).join(" | ");
+
+      const payload = {
+        ...dbFields,
+        observacoes: [dbFields.observacoes, extraInfo].filter(Boolean).join(" | ") || undefined,
+      };
+
       const { data, error } = await supabase
         .from("boletos")
-        .insert(boleto)
+        .insert(payload)
         .select()
         .single();
 
@@ -157,11 +184,17 @@ export function useCreateBoleto() {
       });
     },
     onError: (error: any) => {
-      console.error("Erro ao criar boleto:", error);
+      console.error("Erro ao criar boleto — detalhes:", {
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        full: error,
+      });
       if (error?.code === "23505" && error?.message?.includes("nosso_numero")) {
-        toast.error("Já existe um boleto com este Nosso Número. Use um número diferente ou deixe em branco.");
+        toast.error("Nosso Número duplicado. Tente emitir novamente.");
       } else {
-        toast.error("Erro ao cadastrar boleto");
+        toast.error(`Erro ao cadastrar boleto: ${error?.message || "erro desconhecido"}`);
       }
     },
   });
@@ -172,9 +205,10 @@ export function useCreateBoletosBatch() {
 
   return useMutation({
     mutationFn: async (boletos: BoletoInput[]) => {
+      const sanitized = boletos.map(({ multa_percentual, juros_dia, desconto_valor, desconto_ate, instrucoes, ...rest }: any) => rest);
       const { data, error } = await supabase
         .from("boletos")
-        .insert(boletos)
+        .insert(sanitized)
         .select();
 
       if (error) throw error;
@@ -200,9 +234,11 @@ export function useUpdateBoleto() {
       id,
       ...data
     }: Partial<BoletoInput> & { id: string }) => {
+      // Strip non-existent DB columns before update
+      const { multa_percentual, juros_dia, desconto_valor, desconto_ate, instrucoes, ...dbData } = data as any;
       const { data: result, error } = await supabase
         .from("boletos")
-        .update(data)
+        .update(dbData)
         .eq("id", id)
         .select()
         .single();
