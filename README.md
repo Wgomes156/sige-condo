@@ -21,9 +21,9 @@ Sistema completo para administradoras de condomínios, desenvolvido com React, T
 | Unidades | Gestão de unidades e moradores |
 | Atendimentos | Central de atendimento com histórico detalhado e anexos |
 | Financeiro | Controle financeiro e lançamentos |
-| Boletos | Geração e gestão de boletos |
+| Boletos | Emissão via wizard guiado (4 passos), gestão com filtros, status e exportação |
 | Boletos Recorrentes | Cobrança recorrente automatizada |
-| Contas Bancárias | Gestão de contas bancárias |
+| Contas Bancárias | Gestão de contas bancárias com suporte a Chave Pix |
 | Ordens de Serviço | Controle de manutenções |
 | Ocorrências | Registro de ocorrências de condomínio |
 | Demandas | Gestão de demandas internas |
@@ -139,6 +139,63 @@ Sempre que fizer mudanças no código, repita o processo:
 
 > [!NOTE]
 > O arquivo `.htaccess` (necessário para o roteamento do React) já está na pasta `public/` do projeto e será incluído automaticamente em todos os seus builds.
+
+## Dados Bancários e Emissão de Boletos
+
+### Dados Bancários no Perfil do Condomínio
+
+A seção **Dados Bancários** foi integrada diretamente ao perfil de cada condomínio:
+
+- Acessível em **Condomínios → visualizar (ícone olho) → seção Dados Bancários**
+- Visível apenas para **Administrador** e **Síndico**
+- Exibe banco, agência, conta, titular, CPF/CNPJ e Chave Pix
+- **Máscara de segurança** por padrão — campos sensíveis ficam ocultos (`****`) e são revelados ao clicar em "Mostrar"
+- Toda visualização dos dados completos é **registrada no log de auditoria**
+- Botão "Adicionar / Editar" abre o formulário de conta bancária pré-vinculado ao condomínio
+
+### Wizard de Emissão de Boletos
+
+O botão **"Emitir Boleto"** na página de Boletos abre um assistente guiado em 4 passos:
+
+| Passo | Descrição |
+|-------|-----------|
+| 1 – Condômino | Seleção de condomínio e unidade com exibição dos dados do morador |
+| 2 – Dados do Boleto | Referência, valor, vencimento, multa (padrão 2%), juros/dia (0,033%), desconto opcional e instruções |
+| 3 – Revisão | Exibe dados do cedente (banco do condomínio), sacado e todos os encargos antes de confirmar |
+| 4 – Emitido | Nosso Número gerado, opções de baixar PDF, enviar por e-mail ou WhatsApp |
+
+### Campos de Encargos nos Boletos
+
+Todos os boletos (wizard e cadastro rápido) suportam agora os campos:
+
+- **Multa por atraso** (% — padrão: 2%)
+- **Juros ao dia** (% — padrão: 0,033%)
+- **Desconto** (valor R$ + data limite)
+- **Instruções ao sacado / banco**
+
+### Chave Pix nas Contas Bancárias
+
+O formulário de Conta Bancária agora inclui o campo **Chave Pix** com:
+
+- **Detecção automática do tipo** ao digitar: CPF, CNPJ, e-mail, telefone ou chave aleatória
+- Badge dinâmico indicando o tipo identificado
+- Chave exibida no perfil do condomínio e na etapa de revisão do wizard
+
+### Migration necessária
+
+Ao atualizar para esta versão, execute a migration no Supabase antes de usar os novos campos:
+
+```
+supabase/migrations/20260416120000_enhanced_boletos_and_pix.sql
+```
+
+No Supabase Dashboard → SQL Editor, cole e execute o conteúdo do arquivo acima, ou rode via CLI:
+
+```bash
+supabase db push
+```
+
+---
 
 ## Gestão de Atendimentos (Aprimorada)
 
