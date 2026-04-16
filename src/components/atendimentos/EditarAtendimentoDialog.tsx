@@ -30,7 +30,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus, Clock, History, Pencil, Trash2,
-  FileText, ExternalLink, Paperclip, X, Upload, UserCheck, Printer,
+  FileText, ExternalLink, Paperclip, X, Upload, UserCheck,
   Loader2, Calendar,
 } from "lucide-react";
 import { useUpdateAtendimento, type Atendimento } from "@/hooks/useAtendimentos";
@@ -150,19 +150,37 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   const deleteHistorico = useDeleteAtendimentoHistorico();
   const uploadAnexo = useUploadAnexo();
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [hData, setHData] = useState("");
-  const [hHora, setHHora] = useState("");
-  const [hDets, setHDets] = useState("");
-  const [hStatus, setHStatus] = useState("");
-  const [pdf, setPdf] = useState<File | null>(null);
+  // Estado consolidado do formulário de histórico — atualização atômica evita
+  // o bug onde clicar no lápis de um 2º/3º registro exibia dados do 1º.
+  const [hForm, setHForm] = useState<{
+    show: boolean;
+    editingId: string | null;
+    data: string;
+    hora: string;
+    dets: string;
+    status: string;
+    pdf: File | null;
+  }>({ show: false, editingId: null, data: "", hora: "", dets: "", status: "", pdf: null });
 
+  const resetHForm = () => setHForm({ show: false, editingId: null, data: "", hora: "", dets: "", status: "", pdf: null });
+
+  // defaultValues usa os dados do atendimento diretamente.
+  // Com o key incremental no pai, este componente remonta a cada clique no lápis,
+  // portanto useForm sempre inicializa com os dados do registro correto.
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      data: "", hora: "", operador_nome: "", canal: "", status: "", motivo: "",
-      observacoes: "", cliente_nome: "", cliente_telefone: "", cliente_email: "", condominio_nome: ""
+      data: atendimento?.data || "",
+      hora: safeHora(atendimento?.hora),
+      operador_nome: atendimento?.operador_nome || "",
+      canal: atendimento?.canal || "",
+      status: atendimento?.status || "",
+      motivo: atendimento?.motivo || "",
+      observacoes: atendimento?.observacoes || "",
+      cliente_nome: atendimento?.cliente_nome || "",
+      cliente_telefone: atendimento?.cliente_telefone || "",
+      cliente_email: atendimento?.cliente_email || "",
+      condominio_nome: atendimento?.condominio_nome || "",
     }
   });
 
@@ -181,7 +199,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         cliente_email: atendimento.cliente_email || "",
         condominio_nome: atendimento.condominio_nome || "",
       });
-      setShowForm(false);
+      resetHForm();
     }
   }, [open, atendimento, form]);
 
@@ -198,17 +216,17 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   }
 
   const saveHistorico = async () => {
-    if (!atendimento || !hData || !hHora || !hDets || !hStatus) return;
+    if (!atendimento || !hForm.data || !hForm.hora || !hForm.dets || !hForm.status) return;
     try {
-      let id = editingId;
-      if (editingId) {
-        await updateHistorico.mutateAsync({ id: editingId, data: hData, hora: hHora, detalhes: hDets, status: hStatus });
+      let id = hForm.editingId;
+      if (hForm.editingId) {
+        await updateHistorico.mutateAsync({ id: hForm.editingId, data: hForm.data, hora: hForm.hora, detalhes: hForm.dets, status: hForm.status });
       } else {
-        const r = await createHistorico.mutateAsync({ atendimento_id: atendimento.id, data: hData, hora: hHora, detalhes: hDets, status: hStatus });
+        const r = await createHistorico.mutateAsync({ atendimento_id: atendimento.id, data: hForm.data, hora: hForm.hora, detalhes: hForm.dets, status: hForm.status });
         id = r.id;
       }
-      if (pdf && id) await uploadAnexo.mutateAsync({ file: pdf, entidadeTipo: "atendimento_historico", entidadeId: id });
-      setShowForm(false); setEditingId(null); setPdf(null); setHData(""); setHHora(""); setHDets(""); setHStatus("");
+      if (hForm.pdf && id) await uploadAnexo.mutateAsync({ file: hForm.pdf, entidadeTipo: "atendimento_historico", entidadeId: id });
+      resetHForm();
     } catch { }
   };
 
@@ -231,35 +249,10 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
             </SheetTitle>
             <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Interface Atualizada</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="bg-white border-orange-200 text-orange-700 hover:bg-orange-50 font-bold" onClick={() => {
-              const printWindow = window.open("", "_blank");
-              if (printWindow) {
-                printWindow.document.write(`
-                  <html>
-                    <head>
-                      <title>Relatório de Atendimento</title>
-                      <style>body { font-family: sans-serif; padding: 30px; }</style>
-                    </head>
-                    <body>
-                      <h1 style="color: #f97316">RELATÓRIO DE ATENDIMENTO</h1>
-                      <p><strong>Cliente:</strong> ${atendimento.cliente_nome}</p>
-                      <p><strong>Condomínio:</strong> ${atendimento.condominio_nome}</p>
-                      <hr/>
-                      <h2>Histórico</h2>
-                      ${historico?.map(h => `<div><strong>${h.data}:</strong> ${h.detalhes}</div>`).join("")}
-                    </body>
-                  </html>
-                `);
-                printWindow.document.close();
-                printWindow.print();
-              }
-            }}>
-              <Printer className="h-4 w-4 mr-2" />
-              SALVAR PDF
-            </Button>
-            <button onClick={() => onOpenChange(false)} className="lg:hidden p-2 text-slate-400 hover:text-slate-600"><X className="h-5 w-5" /></button>
-          </div>
+          <Button variant="outline" size="sm" className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold" onClick={() => onOpenChange(false)}>
+            <X className="h-4 w-4 mr-2" />
+            Fechar
+          </Button>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50 space-y-8">
@@ -288,30 +281,30 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
                 <History className="h-5 w-5 text-orange-500" />
                 Histórico do Atendimento ({historico?.length || 0})
               </h3>
-              <Button type="button" size="sm" onClick={() => { setEditingId(null); setHData(""); setHHora(""); setHDets(""); setHStatus(""); setPdf(null); setShowForm(true); }} className="bg-orange-500 text-white font-bold h-9">
+              <Button type="button" size="sm" onClick={() => setHForm({ show: true, editingId: null, data: "", hora: "", dets: "", status: "", pdf: null })} className="bg-orange-500 text-white font-bold h-9">
                 <Plus className="h-4 w-4 mr-1" /> ADICIONAR REGISTRO
               </Button>
             </div>
 
-            {showForm && (
+            {hForm.show && !hForm.editingId && (
               <div className="bg-white rounded-xl border-2 border-orange-200 p-5 space-y-4 shadow-md animate-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center gap-2 text-orange-600 font-bold text-sm mb-2">
-                  <Pencil className="h-4 w-4" />
-                  {editingId ? "EDITANDO REGISTRO" : "NOVO REGISTRO NO HISTÓRICO"}
+                  <Plus className="h-4 w-4" />
+                  NOVO REGISTRO NO HISTÓRICO
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold uppercase text-slate-500">Data do Evento</label>
-                    <Input type="date" value={hData} onChange={e => setHData(e.target.value)} className="border-slate-300 focus:border-orange-500" />
+                    <Input type="date" value={hForm.data} onChange={e => setHForm(prev => ({ ...prev, data: e.target.value }))} className="border-slate-300 focus:border-orange-500" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold uppercase text-slate-500">Hora</label>
-                    <Input type="time" value={hHora} onChange={e => setHHora(e.target.value)} className="border-slate-300 focus:border-orange-500" />
+                    <Input type="time" value={hForm.hora} onChange={e => setHForm(prev => ({ ...prev, hora: e.target.value }))} className="border-slate-300 focus:border-orange-500" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold uppercase text-slate-500">Status da Etapa</label>
-                    <select value={hStatus} onChange={e => setHStatus(e.target.value)} className="w-full h-10 border border-slate-300 rounded-md px-3 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
+                    <select value={hForm.status} onChange={e => setHForm(prev => ({ ...prev, status: e.target.value }))} className="w-full h-10 border border-slate-300 rounded-md px-3 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
                       <option value="">Selecione o status...</option>
                       {H_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -320,7 +313,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold uppercase text-slate-500">Detalhes da Interação</label>
-                  <Textarea value={hDets} onChange={e => setHDets(e.target.value)} placeholder="Descreva o que foi tratado com o clienteneste momento..." className="min-h-[100px] border-slate-300 focus:border-orange-500" />
+                  <Textarea value={hForm.dets} onChange={e => setHForm(prev => ({ ...prev, dets: e.target.value }))} placeholder="Descreva o que foi tratado com o cliente neste momento..." className="min-h-[100px] border-slate-300 focus:border-orange-500" />
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 border-dashed">
@@ -328,13 +321,13 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
                     <Paperclip className="h-3 w-3 text-orange-500" />
                     Documento de Comprovação (PDF)
                   </label>
-                  <PdfField value={pdf} onChange={setPdf} />
+                  <PdfField value={hForm.pdf} onChange={f => setHForm(prev => ({ ...prev, pdf: f }))} />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-                  <Button type="button" variant="outline" size="sm" onClick={() => { setShowForm(false); setEditingId(null); }} className="h-10 px-4">Cancelar</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={resetHForm} className="h-10 px-4">Cancelar</Button>
                   <Button type="button" size="sm" onClick={saveHistorico} disabled={saving} className="bg-orange-600 text-white font-bold px-8 h-10 shadow-lg hover:bg-orange-700">
-                    {saving ? "Salvando..." : editingId ? "Atualizar Histórico" : "Salvar no Histórico"}
+                    {saving ? "Salvando..." : "Salvar no Histórico"}
                   </Button>
                 </div>
               </div>
@@ -342,21 +335,68 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
             <div className="space-y-4">
               {historico?.map(item => (
-                <div key={item.id} className="bg-white rounded-xl border p-4 shadow-sm hover:border-orange-200 transition-all">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-4 w-4 text-orange-500" />
-                      <span className="font-bold text-sm text-slate-800">{safeFormatDate(item.data)} às {safeHora(item.hora)}</span>
-                      <Badge variant="outline" className={cn("text-[10px] uppercase font-bold px-2 py-0.5", historicoStatusColor(item.status))}>{item.status}</Badge>
+                hForm.show && hForm.editingId === item.id ? (
+                  <div key={item.id} className="bg-white rounded-xl border-2 border-orange-200 p-5 space-y-4 shadow-md animate-in zoom-in-95 duration-200">
+                    <div className="flex items-center gap-2 text-orange-600 font-bold text-sm mb-2">
+                      <Pencil className="h-4 w-4" />
+                      EDITANDO REGISTRO SELECIONADO
                     </div>
-                    <div className="flex gap-1">
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-orange-600 hover:bg-orange-50" onClick={() => { setEditingId(item.id); setHData(item.data || ""); setHHora(safeHora(item.hora)); setHDets(item.detalhes || ""); setHStatus(item.status || ""); setShowForm(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => { if (confirm("Excluir?")) deleteHistorico.mutate(item); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold uppercase text-slate-500">Data do Evento</label>
+                        <Input type="date" value={hForm.data} onChange={e => setHForm(prev => ({ ...prev, data: e.target.value }))} className="border-slate-300 focus:border-orange-500" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold uppercase text-slate-500">Hora</label>
+                        <Input type="time" value={hForm.hora} onChange={e => setHForm(prev => ({ ...prev, hora: e.target.value }))} className="border-slate-300 focus:border-orange-500" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold uppercase text-slate-500">Status da Etapa</label>
+                        <select value={hForm.status} onChange={e => setHForm(prev => ({ ...prev, status: e.target.value }))} className="w-full h-10 border border-slate-300 rounded-md px-3 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
+                          <option value="">Selecione o status...</option>
+                          {H_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold uppercase text-slate-500">Detalhes da Interação</label>
+                      <Textarea value={hForm.dets} onChange={e => setHForm(prev => ({ ...prev, dets: e.target.value }))} placeholder="Descreva o que foi tratado com o cliente neste momento..." className="min-h-[100px] border-slate-300 focus:border-orange-500" />
+                    </div>
+
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 border-dashed">
+                      <label className="text-[11px] font-bold uppercase text-slate-500 flex items-center gap-1 mb-3">
+                        <Paperclip className="h-3 w-3 text-orange-500" />
+                        Documento de Comprovação (PDF)
+                      </label>
+                      <PdfField value={hForm.pdf} onChange={f => setHForm(prev => ({ ...prev, pdf: f }))} />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+                      <Button type="button" variant="outline" size="sm" onClick={resetHForm} className="h-10 px-4">Cancelar</Button>
+                      <Button type="button" size="sm" onClick={saveHistorico} disabled={saving} className="bg-orange-600 text-white font-bold px-8 h-10 shadow-lg hover:bg-orange-700">
+                        {saving ? "Salvando..." : "Atualizar Histórico"}
+                      </Button>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border-l-4 border-orange-500 italic">"{item.detalhes || "—"}"</p>
-                  <HistoricoAnexos id={item.id} allowDelete />
-                </div>
+                ) : (
+                  <div key={item.id} className="bg-white rounded-xl border p-4 shadow-sm hover:border-orange-200 transition-all">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-4 w-4 text-orange-500" />
+                        <span className="font-bold text-sm text-slate-800">{safeFormatDate(item.data)} às {safeHora(item.hora)}</span>
+                        <Badge variant="outline" className={cn("text-[10px] uppercase font-bold px-2 py-0.5", historicoStatusColor(item.status))}>{item.status}</Badge>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-orange-600 hover:bg-orange-50" onClick={() => setHForm({ show: true, editingId: item.id, data: item.data || "", hora: safeHora(item.hora), dets: item.detalhes || "", status: item.status || "", pdf: null })}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => { if (confirm("Excluir?")) deleteHistorico.mutate(item); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border-l-4 border-orange-500 italic">"{item.detalhes || "—"}"</p>
+                    <HistoricoAnexos id={item.id} allowDelete />
+                  </div>
+                )
               ))}
             </div>
           </div>

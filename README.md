@@ -324,6 +324,35 @@ O Service Worker detecta a mudança de versão, ativa o novo worker, limpa os ca
 
 ---
 
+### Problema 5 — Erro "removeChild" ao sair da página de Atendimentos
+
+**Sintoma:** Ao navegar para outra página a partir de Atendimentos, aparecia a mensagem de erro:
+> *"Ops! Algo deu errado. Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node"*
+
+**Causa:** O componente `Atendimentos.tsx` usava `setTimeout` (300 ms e 400 ms) para coordenar a abertura e o fechamento dos painéis laterais (`Sheet` do Radix UI). Quando o usuário navegava para outra página enquanto um timeout ainda estava pendente, o React Router desmontava a página e removia os nós do DOM. Ao disparar, o timeout tentava atualizar o estado de um componente já desmontado, forçando o Radix UI a tentar remover nós de portals de um DOM que já havia sido limpo → erro `removeChild`.
+
+**Solução:** Em `Atendimentos.tsx`:
+1. Criado `timeoutsRef` para rastrear todos os `setTimeout` abertos.
+2. Adicionado `useEffect` com cleanup que, ao desmontar, cancela todos os timeouts **e força o fechamento imediato de todos os Sheets** — dando ao Radix UI a chance de limpar seus portals enquanto o DOM ainda está íntegro.
+
+```tsx
+const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+useEffect(() => {
+  return () => {
+    timeoutsRef.current.forEach(clearTimeout);
+    setIsFormOpen(false);
+    setIsAssistenteOpen(false);
+    setIsDetalhesOpen(false);
+    setIsEditOpen(false);
+  };
+}, []);
+```
+
+**Regra:** Qualquer componente que use `setTimeout` para controlar animações de portals (Sheet, Dialog, Popover) deve limpar os timeouts e fechar os portals no `useEffect` cleanup, para evitar conflitos de DOM ao trocar de rota.
+
+---
+
 ### Checklist de deploy seguro para Hostinger
 
 Antes de cada atualização, confirme:

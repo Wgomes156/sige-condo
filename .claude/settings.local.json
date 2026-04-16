@@ -17,7 +17,8 @@
       "Bash(npm install *)",
       "Bash(unzip -l dist.zip)",
       "Bash(python3 -c \"import zipfile; z=zipfile.ZipFile\\('dist.zip'\\); [print\\(n\\) for n in z.namelist\\(\\)[:20]]\")",
-      "Bash(ls /d/sige-condo/README*)"
+      "Bash(ls /d/sige-condo/README*)",
+      "Bash(npx tsc *)"
     ]
   }
 }

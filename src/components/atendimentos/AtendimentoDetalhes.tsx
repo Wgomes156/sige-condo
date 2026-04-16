@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Printer, Phone, Mail, Building2, User, MessageSquare, Calendar, Pencil } from "lucide-react";
+import { Printer, Phone, Mail, Building2, User, MessageSquare, Calendar, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -202,6 +202,15 @@ export function AtendimentoDetalhes({ open, onOpenChange, atendimento, onEdit }:
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              className="text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+              title="Fechar"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         </SheetHeader>
 
@@ -344,6 +353,18 @@ export function AtendimentoDetalhes({ open, onOpenChange, atendimento, onEdit }:
               showUploader={true}
               showDelete={true}
             />
+          </div>
+
+          {/* Botão Fechar inferior */}
+          <div className="pt-6 pb-2">
+            <Button
+              variant="outline"
+              className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Fechar
+            </Button>
           </div>
         </div>
       </SheetContent>
