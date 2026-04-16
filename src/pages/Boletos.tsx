@@ -2,19 +2,21 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Upload, Download, Mail } from "lucide-react";
+import { Plus, Upload, Download, Mail, Wand2 } from "lucide-react";
 import { NovoBoletoForm } from "@/components/boletos/NovoBoletoForm";
 import { ImportarBoletosForm } from "@/components/boletos/ImportarBoletosForm";
 import { BoletosTable } from "@/components/boletos/BoletosTable";
 import { FiltrosBoletos } from "@/components/boletos/FiltrosBoletos";
 import { BoletosCards } from "@/components/boletos/BoletosCards";
 import { EnvioEmailMassaPanel } from "@/components/boletos/EnvioEmailMassaPanel";
+import { EmissaoBoletoWizard } from "@/components/boletos/EmissaoBoletoWizard";
 import { useBoletos, useResumoBoletos, BoletoFilters } from "@/hooks/useBoletos";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Boletos() {
   const [showNovoForm, setShowNovoForm] = useState(false);
   const [showImportForm, setShowImportForm] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [filters, setFilters] = useState<BoletoFilters>({});
   const [activeTab, setActiveTab] = useState("boletos");
   const { userRole } = useAuth();
@@ -74,9 +76,9 @@ export default function Boletos() {
           </div>
 
           <div className="grid grid-cols-2 sm:flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleExportCSV} 
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
               disabled={!boletos?.length}
               className="h-11 sm:h-10 text-xs sm:text-sm"
             >
@@ -85,20 +87,28 @@ export default function Boletos() {
             </Button>
             {canCreate && (
               <>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowImportForm(true)}
                   className="h-11 sm:h-10 text-xs sm:text-sm"
                 >
                   <Upload className="mr-1 sm:mr-2 h-4 w-4" />
                   Importar
                 </Button>
-                <Button 
+                <Button
+                  variant="outline"
                   onClick={() => setShowNovoForm(true)}
-                  className="col-span-2 sm:col-span-1 h-11 sm:h-10 text-xs sm:text-sm font-bold shadow-sm"
+                  className="h-11 sm:h-10 text-xs sm:text-sm"
                 >
                   <Plus className="mr-1 sm:mr-2 h-4 w-4" />
-                  Novo Boleto
+                  Cadastro Rápido
+                </Button>
+                <Button
+                  onClick={() => setShowWizard(true)}
+                  className="col-span-2 sm:col-span-1 h-11 sm:h-10 text-xs sm:text-sm font-bold shadow-sm"
+                >
+                  <Wand2 className="mr-1 sm:mr-2 h-4 w-4" />
+                  Emitir Boleto
                 </Button>
               </>
             )}
@@ -162,6 +172,7 @@ export default function Boletos() {
       </div>
       <NovoBoletoForm open={showNovoForm} onOpenChange={setShowNovoForm} />
       <ImportarBoletosForm open={showImportForm} onOpenChange={setShowImportForm} />
+      <EmissaoBoletoWizard open={showWizard} onOpenChange={setShowWizard} />
     </>
   );
 }

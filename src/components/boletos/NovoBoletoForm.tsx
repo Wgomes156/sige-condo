@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -44,6 +45,11 @@ const formSchema = z.object({
   data_vencimento: z.string().min(1, "Informe a data de vencimento"),
   referencia: z.string().min(1, "Informe a referência"),
   observacoes: z.string().optional(),
+  multa_percentual: z.string().optional(),
+  juros_dia: z.string().optional(),
+  desconto_valor: z.string().optional(),
+  desconto_ate: z.string().optional(),
+  instrucoes: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -72,6 +78,11 @@ export function NovoBoletoForm({ open, onOpenChange }: NovoBoletoFormProps) {
       data_vencimento: "",
       referencia: "",
       observacoes: "",
+      multa_percentual: "2",
+      juros_dia: "0.033",
+      desconto_valor: "",
+      desconto_ate: "",
+      instrucoes: "",
     },
   });
 
@@ -98,9 +109,14 @@ export function NovoBoletoForm({ open, onOpenChange }: NovoBoletoFormProps) {
       morador_telefone: data.morador_telefone || undefined,
       valor,
       data_vencimento: data.data_vencimento,
-      nosso_numero: null, // Auto-gerado pelo banco
+      nosso_numero: null,
       referencia: data.referencia,
       observacoes: data.observacoes || undefined,
+      multa_percentual: data.multa_percentual ? parseFloat(data.multa_percentual) : 2,
+      juros_dia: data.juros_dia ? parseFloat(data.juros_dia) : 0.033,
+      desconto_valor: data.desconto_valor ? parseFloat(data.desconto_valor.replace(",", ".")) : undefined,
+      desconto_ate: data.desconto_ate || undefined,
+      instrucoes: data.instrucoes || undefined,
     });
 
     form.reset();
@@ -303,14 +319,96 @@ export function NovoBoletoForm({ open, onOpenChange }: NovoBoletoFormProps) {
               💡 O <strong>Nosso Número</strong> será gerado automaticamente pelo sistema.
             </p>
 
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Encargos por Atraso</p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="multa_percentual"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Multa por Atraso (%)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="2" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="juros_dia"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Juros ao Dia (%)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="0,033" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Desconto (Opcional)</p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="desconto_valor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor do Desconto (R$)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="0,00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="desconto_ate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Válido até</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="instrucoes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Instruções ao Sacado / Banco</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Ex: Não receber após o vencimento. Cobrar multa e juros após vencimento."
+                      className="min-h-[60px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="observacoes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Observações</FormLabel>
+                  <FormLabel>Observações Internas</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Observações adicionais..." {...field} />
+                    <Textarea placeholder="Observações adicionais (não aparecem no boleto)..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -33,6 +33,8 @@ export interface ContaBancaria {
   dias_protesto: number | null;
   ativa: boolean;
   conta_padrao: boolean;
+  chave_pix: string | null;
+  tipo_chave_pix: string | null;
   // Joined data
   condominio_nome?: string;
   administradora_nome?: string;
@@ -65,6 +67,8 @@ export interface NovaContaBancariaData {
   dias_protesto?: number | null;
   ativa?: boolean;
   conta_padrao?: boolean;
+  chave_pix?: string | null;
+  tipo_chave_pix?: string | null;
 }
 
 export function useContasBancarias() {

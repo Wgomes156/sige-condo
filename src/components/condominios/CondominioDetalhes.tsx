@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Building2, MapPin, User, Phone, Mail, Shield, Eye, Users, Home, Leaf, Car, FileText } from "lucide-react";
 import { Condominio } from "@/hooks/useCondominios";
 import { AnexosSection } from "@/components/anexos/AnexosSection";
+import { DadosBancariosSection } from "@/components/condominios/DadosBancariosSection";
 
 interface CondominioDetalhesProps {
   open: boolean;
@@ -262,6 +263,9 @@ export const CondominioDetalhes = forwardRef<HTMLDivElement, CondominioDetalhesP
                 </p>
               </div>
             )}
+
+            {/* Dados Bancários */}
+            <DadosBancariosSection condominioId={condominio.id} />
 
             {/* Anexos */}
             <AnexosSection

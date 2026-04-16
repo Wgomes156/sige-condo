@@ -19,6 +19,11 @@ export interface Boleto {
   nosso_numero: string | null;
   referencia: string;
   observacoes: string | null;
+  multa_percentual: number | null;
+  juros_dia: number | null;
+  desconto_valor: number | null;
+  desconto_ate: string | null;
+  instrucoes: string | null;
   created_at: string;
   updated_at: string;
   condominios?: { nome: string };
@@ -51,6 +56,11 @@ export interface BoletoInput {
   nosso_numero?: string | null;
   referencia: string;
   observacoes?: string;
+  multa_percentual?: number;
+  juros_dia?: number;
+  desconto_valor?: number;
+  desconto_ate?: string;
+  instrucoes?: string;
 }
 
 export function useBoletos(filters: BoletoFilters = {}) {

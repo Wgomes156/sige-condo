@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -29,12 +30,72 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
+import { Loader2, QrCode } from "lucide-react";
 import { bancosBrasileiros } from "@/lib/bancosBrasileiros";
 import { useCondominios } from "@/hooks/useCondominios";
 import { supabase } from "@/integrations/supabase/client";
 import { ContaBancaria, NovaContaBancariaData } from "@/hooks/useContasBancarias";
 import { formatCnpj, formatCpf } from "@/lib/masks";
+
+function detectTipoChavePix(chave: string): string {
+  if (!chave) return "";
+  const digits = chave.replace(/\D/g, "");
+  if (/^\d{11}$/.test(digits) && !chave.includes("@")) return "cpf";
+  if (/^\d{14}$/.test(digits)) return "cnpj";
+  if (chave.includes("@")) return "email";
+  if (/^\+?55\d{10,11}$/.test(chave.replace(/[\s\-()]/g, "")) && chave.replace(/\D/g, "").length <= 13) return "telefone";
+  if (chave.length >= 32) return "aleatoria";
+  return "";
+}
+
+const tipoPixLabel: Record<string, string> = {
+  cpf: "CPF",
+  cnpj: "CNPJ",
+  email: "E-mail",
+  telefone: "Telefone",
+  aleatoria: "Chave Aleatória",
+};
+
+function ChavePixField({ form }: { form: UseFormReturn<any> }) {
+  const chave = form.watch("chave_pix") || "";
+  const tipoDetectado = detectTipoChavePix(chave);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+    form.setValue("chave_pix", valor);
+    form.setValue("tipo_chave_pix", detectTipoChavePix(valor));
+  };
+
+  return (
+    <FormField
+      control={form.control}
+      name="chave_pix"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel className="flex items-center gap-1.5">
+            <QrCode className="h-3.5 w-3.5" />
+            Chave Pix (Opcional)
+          </FormLabel>
+          <div className="flex gap-2 items-center">
+            <FormControl>
+              <Input
+                placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+                value={field.value || ""}
+                onChange={handleChange}
+              />
+            </FormControl>
+            {tipoDetectado && (
+              <Badge variant="secondary" className="shrink-0 text-xs">
+                {tipoPixLabel[tipoDetectado] || tipoDetectado}
+              </Badge>
+            )}
+          </div>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
 
 const formSchema = z.object({
   vinculo_tipo: z.enum(["administradora", "condominio"]),
@@ -63,6 +124,8 @@ const formSchema = z.object({
   dias_protesto: z.coerce.number().min(0).optional(),
   ativa: z.boolean(),
   conta_padrao: z.boolean(),
+  chave_pix: z.string().optional(),
+  tipo_chave_pix: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -73,6 +136,7 @@ interface ContaBancariaFormDialogProps {
   contaParaEditar?: ContaBancaria | null;
   onSave: (data: NovaContaBancariaData) => Promise<boolean>;
   onUpdate?: (id: string, data: Partial<NovaContaBancariaData>) => Promise<boolean>;
+  defaultCondominioId?: string;
 }
 
 interface Administradora {
@@ -86,6 +150,7 @@ export function ContaBancariaFormDialog({
   contaParaEditar,
   onSave,
   onUpdate,
+  defaultCondominioId,
 }: ContaBancariaFormDialogProps) {
   const [saving, setSaving] = useState(false);
   const [administradoras, setAdministradoras] = useState<Administradora[]>([]);
@@ -95,6 +160,7 @@ export function ContaBancariaFormDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       vinculo_tipo: "condominio",
+      condominio_id: defaultCondominioId || "",
       nome_conta: "",
       banco_codigo: "",
       agencia: "",
@@ -118,6 +184,8 @@ export function ContaBancariaFormDialog({
       dias_protesto: undefined,
       ativa: true,
       conta_padrao: false,
+      chave_pix: "",
+      tipo_chave_pix: "",
     },
   });
 
@@ -167,10 +235,13 @@ export function ContaBancariaFormDialog({
         dias_protesto: contaParaEditar.dias_protesto || undefined,
         ativa: contaParaEditar.ativa,
         conta_padrao: contaParaEditar.conta_padrao,
+        chave_pix: contaParaEditar.chave_pix || "",
+        tipo_chave_pix: contaParaEditar.tipo_chave_pix || "",
       });
     } else {
       form.reset({
         vinculo_tipo: "condominio",
+        condominio_id: defaultCondominioId || "",
         nome_conta: "",
         banco_codigo: "",
         agencia: "",
@@ -194,9 +265,11 @@ export function ContaBancariaFormDialog({
         dias_protesto: undefined,
         ativa: true,
         conta_padrao: false,
+        chave_pix: "",
+        tipo_chave_pix: "",
       });
     }
-  }, [contaParaEditar, form]);
+  }, [contaParaEditar, defaultCondominioId, form]);
 
   const onSubmit = async (values: FormData) => {
     setSaving(true);
@@ -232,6 +305,8 @@ export function ContaBancariaFormDialog({
       dias_protesto: values.dias_protesto || null,
       ativa: values.ativa,
       conta_padrao: values.conta_padrao,
+      chave_pix: values.chave_pix || null,
+      tipo_chave_pix: values.tipo_chave_pix || null,
     };
 
     let success = false;
@@ -568,6 +643,9 @@ export function ContaBancariaFormDialog({
                       </FormItem>
                     )}
                   />
+
+                  {/* Chave Pix */}
+                  <ChavePixField form={form} />
 
                   {/* Status */}
                   <div className="flex items-center gap-6 pt-2">
