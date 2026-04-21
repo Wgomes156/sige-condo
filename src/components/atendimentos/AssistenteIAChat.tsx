@@ -296,8 +296,8 @@ export function AssistenteIAChat({ open, onOpenChange }: AssistenteIAChatProps) 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
-        "flex flex-col p-0 gap-0",
-        isMobile ? "w-screen h-[100dvh] max-w-none rounded-none border-none" : "max-w-lg max-h-[90vh]"
+        "flex flex-col p-0 gap-0 overflow-hidden shadow-2xl",
+        isMobile ? "w-screen h-[100dvh] max-w-none rounded-none border-none" : "max-w-2xl w-full h-[750px] max-h-[85vh] rounded-2xl"
       )}>
         <DialogHeader className={cn(
           "px-4 py-3 border-b flex-row items-center gap-3 space-y-0",
@@ -313,49 +313,64 @@ export function AssistenteIAChat({ open, onOpenChange }: AssistenteIAChatProps) 
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <DialogTitle className="flex items-center gap-2 text-primary text-base sm:text-lg">
-            <Bot className="h-5 w-5" />
-            Ana — CondoPlus
-            <Badge variant="secondary" className="ml-2 text-[10px] font-normal px-1.5 py-0">
-              IA
-            </Badge>
+          <DialogTitle className="flex items-center gap-3 text-primary text-base sm:text-lg">
+            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-orange-200 shrink-0">
+              <img src="/ana-avatar.png" alt="Ana" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                Ana — Assistente Virtual
+                <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 border-none text-[10px] font-bold px-1.5 py-0">
+                  IA
+                </Badge>
+              </div>
+              <span className="text-[10px] text-slate-500 font-normal">Sempre pronta para ajudar</span>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea 
+        <div 
           className={cn(
-            "flex-1 px-4 py-4",
-            isMobile ? "h-full" : "min-h-[350px] max-h-[55vh]"
+            "flex-1 px-4 py-4 overflow-y-auto custom-scrollbar",
+            isMobile ? "h-full" : "min-h-[400px]"
           )} 
           ref={scrollRef}
         >
-          <div className="space-y-3 pb-2">
+          <div className="space-y-4 pb-4">
             {messages.map((msg, i) => (
               <div
                 key={i}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                className={cn(
+                  "flex animate-in fade-in slide-in-from-bottom-2 duration-300",
+                  msg.role === "user" ? "justify-end" : "justify-start"
+                )}
               >
                 <div
-                  className={`max-w-[88%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
+                  className={cn(
+                    "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm",
                     msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
-                  }`}
+                      ? "bg-orange-500 text-white rounded-tr-none font-medium"
+                      : "bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200"
+                  )}
                 >
-                  {msg.content}
+                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                 </div>
               </div>
             ))}
             {isLoading && messages[messages.length - 1]?.role === "user" && (
-              <div className="flex justify-start">
-                <div className="bg-muted rounded-lg px-3 py-2 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Ana está digitando...</span>
+              <div className="flex justify-start animate-pulse">
+                <div className="bg-slate-100 rounded-2xl rounded-tl-none px-4 py-2.5 flex items-center gap-2 border border-slate-200 shadow-sm">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce"></span>
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">Ana está digitando...</span>
                 </div>
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         <div className={cn(
           "p-4 border-t bg-background sticky bottom-0",
