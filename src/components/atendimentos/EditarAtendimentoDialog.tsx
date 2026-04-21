@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -33,7 +33,8 @@ import {
   FileText, ExternalLink, Paperclip, X, Upload, UserCheck,
   Loader2, Calendar,
 } from "lucide-react";
-import { useUpdateAtendimento, type Atendimento } from "@/hooks/useAtendimentos";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUpdateAtendimento, useDeleteAtendimento, type Atendimento } from "@/hooks/useAtendimentos";
 import {
   useAtendimentoHistorico,
   useCreateAtendimentoHistorico,
@@ -143,12 +144,19 @@ function PdfField({ value, onChange }: { value: File | null; onChange: (f: File 
 export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { open: boolean; onOpenChange: (v: boolean) => void; atendimento: Atendimento | null; }) {
   console.log("[DEBUG] EditarAtendimentoDialog: Abrindo?", open, "ID:", atendimento?.id);
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const updateAtendimento = useUpdateAtendimento();
-  const { data: historico } = useAtendimentoHistorico(atendimento?.id);
+  const deleteAtendimento = useDeleteAtendimento();
+  const { data: historico, isLoading: historicoLoading, error: historicoError } = useAtendimentoHistorico(atendimento?.id);
   const createHistorico = useCreateAtendimentoHistorico();
   const updateHistorico = useUpdateAtendimentoHistorico();
   const deleteHistorico = useDeleteAtendimentoHistorico();
   const uploadAnexo = useUploadAnexo();
+
+  // Debug: log quando historico muda
+  useEffect(() => {
+    console.log("[DEBUG] Histórico atualizado:", { count: historico?.length, loading: historicoLoading, error: historicoError, atendimentoId: atendimento?.id });
+  }, [historico, historicoLoading, historicoError, atendimento?.id]);
 
   // Estado consolidado do formulário de histórico — atualização atômica evita
   // o bug onde clicar no lápis de um 2º/3º registro exibia dados do 1º.
@@ -216,18 +224,39 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   }
 
   const saveHistorico = async () => {
-    if (!atendimento || !hForm.data || !hForm.hora || !hForm.dets || !hForm.status) return;
+    if (!atendimento || !hForm.data || !hForm.hora || !hForm.dets || !hForm.status) {
+      console.warn("[saveHistorico] Campos obrigatórios não preenchidos:", {
+        atendimento: !!atendimento,
+        data: hForm.data,
+        hora: hForm.hora,
+        dets: hForm.dets,
+        status: hForm.status,
+      });
+      return;
+    }
     try {
       let id = hForm.editingId;
       if (hForm.editingId) {
+        console.log("[saveHistorico] Atualizando histórico:", hForm.editingId);
         await updateHistorico.mutateAsync({ id: hForm.editingId, data: hForm.data, hora: hForm.hora, detalhes: hForm.dets, status: hForm.status });
       } else {
+        console.log("[saveHistorico] Criando novo histórico para atendimento:", atendimento.id);
         const r = await createHistorico.mutateAsync({ atendimento_id: atendimento.id, data: hForm.data, hora: hForm.hora, detalhes: hForm.dets, status: hForm.status });
+        console.log("[saveHistorico] Histórico criado com sucesso, id:", r.id);
         id = r.id;
       }
-      if (hForm.pdf && id) await uploadAnexo.mutateAsync({ file: hForm.pdf, entidadeTipo: "atendimento_historico", entidadeId: id });
+      if (hForm.pdf && id) {
+        console.log("[saveHistorico] Fazendo upload de anexo para histórico:", id);
+        await uploadAnexo.mutateAsync({ file: hForm.pdf, entidadeTipo: "atendimento_historico", entidadeId: id });
+      }
+      console.log("[saveHistorico] Resetando formulário. Total histórico atual:", historico?.length);
+      // Força invalidação extra para garantir que a lista se atualize
+      await queryClient.invalidateQueries({ queryKey: ["atendimento_historico", atendimento.id] });
+      console.log("[saveHistorico] Cache invalidado, aguardando refetch...");
       resetHForm();
-    } catch { }
+    } catch (err) {
+      console.error("[saveHistorico] ERRO ao salvar histórico:", err);
+    }
   };
 
   const onSubmit = async (data: FormData) => {
@@ -240,7 +269,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={isMobile ? "bottom" : "right"} className={cn("flex flex-col p-0 gap-0", isMobile ? "h-[95vh]" : "w-full sm:max-w-[800px]")}>
+      <SheetContent hideClose side={isMobile ? "bottom" : "right"} className={cn("flex flex-col p-0 gap-0", isMobile ? "h-[95vh]" : "w-full sm:max-w-[800px]")}>
         <SheetHeader className="px-6 py-4 border-b bg-orange-50 shrink-0 flex flex-row items-center justify-between space-y-0">
           <div className="flex flex-col">
             <SheetTitle className="text-xl font-bold flex items-center gap-2">
@@ -249,10 +278,29 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
             </SheetTitle>
             <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Interface Atualizada</span>
           </div>
-          <Button variant="outline" size="sm" className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold" onClick={() => onOpenChange(false)}>
-            <X className="h-4 w-4 mr-2" />
-            Fechar
-          </Button>
+          <div className="flex gap-2">
+            {atendimento && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700 font-semibold" 
+                onClick={async () => {
+                  if (confirm("Tem certeza que deseja EXCLUIR este atendimento permanentemente? Esta ação não pode ser desfeita.")) {
+                    await deleteAtendimento.mutateAsync(atendimento);
+                    onOpenChange(false);
+                  }
+                }}
+                disabled={deleteAtendimento.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {deleteAtendimento.isPending ? "Excluindo..." : "Excluir"}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold" onClick={() => onOpenChange(false)}>
+              <X className="h-4 w-4 mr-2" />
+              Fechar
+            </Button>
+          </div>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50 space-y-8">
@@ -334,6 +382,22 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
             )}
 
             <div className="space-y-4">
+              {historicoLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-orange-500 mr-2" />
+                  <span className="text-sm text-slate-500">Carregando histórico...</span>
+                </div>
+              )}
+              {historicoError && (
+                <div className="text-center py-8 text-red-500 text-sm">
+                  Erro ao carregar histórico. Verifique o console para detalhes.
+                </div>
+              )}
+              {!historicoLoading && !historicoError && historico?.length === 0 && (
+                <div className="text-center py-8 text-slate-400 text-sm">
+                  Nenhum registro no histórico. Clique em "Adicionar Registro" para começar.
+                </div>
+              )}
               {historico?.map(item => (
                 hForm.show && hForm.editingId === item.id ? (
                   <div key={item.id} className="bg-white rounded-xl border-2 border-orange-200 p-5 space-y-4 shadow-md animate-in zoom-in-95 duration-200">

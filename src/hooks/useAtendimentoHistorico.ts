@@ -26,13 +26,18 @@ export function useAtendimentoHistorico(atendimentoId: string | undefined) {
     queryKey: ["atendimento_historico", atendimentoId],
     queryFn: async () => {
       if (!atendimentoId) return [];
+      console.log("[useAtendimentoHistorico] Buscando histórico para:", atendimentoId);
       const { data, error } = await supabase
         .from("atendimento_historico")
         .select("*")
         .eq("atendimento_id", atendimentoId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[useAtendimentoHistorico] Erro ao buscar:", error);
+        throw error;
+      }
+      console.log("[useAtendimentoHistorico] Resultados:", data?.length, "registros");
       return data as AtendimentoHistorico[];
     },
     enabled: !!atendimentoId,
@@ -44,7 +49,10 @@ export function useCreateAtendimentoHistorico() {
 
   return useMutation({
     mutationFn: async (novo: NovoHistoricoData) => {
+      console.log("[useCreateAtendimentoHistorico] Iniciando criação:", novo);
       const { data: userData } = await supabase.auth.getUser();
+      console.log("[useCreateAtendimentoHistorico] Usuário:", userData.user?.id);
+
       const { data, error } = await supabase
         .from("atendimento_historico")
         .insert({
@@ -54,15 +62,21 @@ export function useCreateAtendimentoHistorico() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("[useCreateAtendimentoHistorico] Erro no Supabase:", error);
+        throw error;
+      }
+
+      console.log("[useCreateAtendimentoHistorico] Registro criado com sucesso:", data);
       return data;
     },
     onSuccess: (data) => {
+      console.log("[useCreateAtendimentoHistorico] onSuccess - invalidando cache para:", data.atendimento_id);
       queryClient.invalidateQueries({ queryKey: ["atendimento_historico", data.atendimento_id] });
       toast.success("Registro de histórico adicionado!");
     },
     onError: (error) => {
-      console.error("Erro ao criar histórico:", error);
+      console.error("[useCreateAtendimentoHistorico] onError:", error);
       toast.error("Erro ao adicionar registro de histórico.");
     },
   });
