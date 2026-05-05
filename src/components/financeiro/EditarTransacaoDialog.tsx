@@ -22,6 +22,10 @@ import {
   useCategorias,
 } from "@/hooks/useFinanceiro";
 import { useCondominios } from "@/hooks/useCondominios";
+import { Separator } from "@/components/ui/separator";
+import { Paperclip } from "lucide-react";
+import { AnexoUploader } from "@/components/anexos/AnexoUploader";
+import { AnexosList } from "@/components/anexos/AnexosList";
 
 interface EditarTransacaoDialogProps {
   transacao: TransacaoFinanceira | null;
@@ -288,6 +292,24 @@ export function EditarTransacaoDialog({
                 setForm({ ...form, observacoes: e.target.value })
               }
               rows={3}
+            />
+          </div>
+
+          {/* Seção de Anexos */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-primary">Anexos (PDF / JPG)</h3>
+            </div>
+            <Separator />
+            <AnexoUploader
+              entidadeTipo="transacao"
+              entidadeId={transacao?.id ?? ""}
+              disabled={!transacao?.id}
+            />
+            <AnexosList
+              entidadeTipo="transacao"
+              entidadeId={transacao?.id ?? null}
             />
           </div>
 

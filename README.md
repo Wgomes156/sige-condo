@@ -20,7 +20,7 @@ Sistema completo para administradoras de condomínios, desenvolvido com React, T
 | Condomínios | Cadastro e gestão de condomínios |
 | Unidades | Gestão de unidades e moradores |
 | Atendimentos | Central de atendimento com histórico detalhado e anexos |
-| Financeiro | Controle financeiro e lançamentos |
+| Financeiro | Controle financeiro, lançamentos e **anexos de documentos (PDF/JPG)** por transação |
 | Boletos | Emissão via wizard guiado (4 passos), gestão com filtros, status e exportação |
 | Boletos Recorrentes | Cobrança recorrente automatizada |
 | Contas Bancárias | Gestão de contas bancárias com suporte a Chave Pix |
@@ -264,7 +264,26 @@ Consulte o arquivo [`.env.example`](.env.example) para ver as variáveis necess�
 
 ---
 
-## Problemas conhecidos e soluções (Deploy)
+## Anexos em Transações Financeiras (Nova Despesa / Nova Receita)
+
+Os formulários de **Nova Despesa** e **Nova Receita** agora suportam o upload de múltiplos documentos diretamente no cadastro da transação:
+
+### ✨ Funcionalidades
+- **Upload no formulário**: Arraste ou clique na área de upload para selecionar arquivos **PDF e JPG** (também PNG, BMP, GIF) — até **10MB por arquivo**, sem limite de quantidade.
+- **Fila de pendentes**: Os arquivos ficam em lista de espera com preview de imagem e ícone para PDF, antes de serem enviados.
+- **Upload automático ao salvar**: Ao clicar em "Salvar Transação", os arquivos são enviados automaticamente ao **Supabase Storage** vinculados ao ID da transação recém-criada.
+- **Gerenciamento na edição**: No diálogo **Editar Transação**, há uma seção completa de Anexos com upload imediato, listagem, visualização inline e exclusão com confirmação.
+
+### Migration necessária
+
+Execute no Supabase Dashboard → SQL Editor antes de usar esta funcionalidade:
+
+```
+supabase/migrations/20260505221300_add_transacao_to_anexos_rls.sql
+```
+
+Esta migration atualiza as políticas de segurança (RLS) da tabela `anexos` para permitir acesso ao tipo de entidade `transacao`.
+
 
 Registro dos problemas reais encontrados em produção e como foram resolvidos.
 

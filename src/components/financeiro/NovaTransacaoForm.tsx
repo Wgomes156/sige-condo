@@ -36,6 +36,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { GerenciarCategoriasDialog } from "./GerenciarCategoriasDialog";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/utils";
+import { PendingFilesUploader, PendingFile } from "@/components/anexos/PendingFilesUploader";
+import { uploadPendingFiles } from "@/hooks/useAnexos";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   tipo: z.enum(["receita", "despesa"]),
@@ -72,6 +75,7 @@ export function NovaTransacaoForm({
   const [tipo, setTipo] = useState<"receita" | "despesa">(tipoInicial);
   const [showGerenciarCategorias, setShowGerenciarCategorias] = useState(false);
   const { data: categorias } = useCategorias(tipo);
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -96,7 +100,7 @@ export function NovaTransacaoForm({
   const onSubmit = async (data: FormData) => {
     const valor = parseFloat(data.valor.replace(",", "."));
 
-    await createTransacao.mutateAsync({
+    const novaTransacao = await createTransacao.mutateAsync({
       tipo: data.tipo,
       condominio_id: data.condominio_id,
       categoria_id: data.categoria_id || undefined,
@@ -112,7 +116,22 @@ export function NovaTransacaoForm({
       criado_por_nome: profile?.nome || "Sistema",
     });
 
+    // Upload dos arquivos pendentes após criar a transação
+    if (pendingFiles.length > 0 && novaTransacao?.id) {
+      const { success, failed } = await uploadPendingFiles(
+        pendingFiles.map((pf) => pf.file),
+        "transacao",
+        novaTransacao.id
+      );
+      if (failed > 0) {
+        toast.warning(`${success} arquivo(s) enviado(s), ${failed} falhou(aram).`);
+      } else if (success > 0) {
+        toast.success(`${success} arquivo(s) anexado(s) com sucesso!`);
+      }
+    }
+
     form.reset();
+    setPendingFiles([]);
     onOpenChange(false);
   };
 
@@ -402,6 +421,13 @@ export function NovaTransacaoForm({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            {/* Seção de Anexos (PDF/JPG) */}
+            <PendingFilesUploader
+              pendingFiles={pendingFiles}
+              onFilesChange={setPendingFiles}
+              disabled={createTransacao.isPending}
             />
 
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4">

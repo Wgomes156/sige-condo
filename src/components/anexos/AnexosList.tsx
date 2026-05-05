@@ -23,7 +23,7 @@ import {
 import { AnexoViewer } from "./AnexoViewer";
 
 interface AnexosListProps {
-  entidadeTipo: "condominio" | "atendimento" | "ordem_servico" | "ocorrencia_condominio";
+  entidadeTipo: "condominio" | "atendimento" | "ordem_servico" | "ocorrencia_condominio" | "transacao";
   entidadeId: string | null;
   showDelete?: boolean;
 }
