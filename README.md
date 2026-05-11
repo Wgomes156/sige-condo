@@ -2,7 +2,7 @@
 
 Sistema completo para administradoras de condomínios, desenvolvido com React, TypeScript, Vite e Supabase.
 
-> **Última atualização:** 11/05/2026
+> **Última atualização:** 11/05/2026 - Correção no fluxo de salvamento de atendimentos.
 
 ## Tecnologias
 
@@ -464,14 +464,30 @@ useEffect(() => {
 
 ---
 
+### Histórico: Correção de Persistência no Editar Atendimento (11/05/2026)
+
+**Sintoma:** Alterações no formulário "Editar Atendimento" (especialmente endereço e dados do condomínio) não eram salvas ao clicar em "Salvar". O botão parecia não reagir ou as mudanças não apareciam após o fechamento do diálogo.
+
+**Causa:**
+1. **Desconexão do Formulário:** O botão de salvar estava fora do elemento `<form>` e não estava disparando o evento `submit` nativo, o que impedia a validação do Zod e o tratamento correto dos dados.
+2. **Falta de Vínculo (Condominio ID):** Muitos atendimentos antigos possuíam apenas o nome do condomínio em texto, mas o campo `condominio_id` estava nulo. O sistema tentava atualizar um registro inexistente na tabela `condominios`.
+3. **Restrições de Schema:** Campos obrigatórios no Zod que estavam vindo nulos do banco impediam o salvamento silenciosamente.
+
+**Solução:**
+1. **Submit Nativo:** O formulário agora usa `id="edit-atendimento-form"` e o botão usa `type="submit" form="..."`.
+2. **Criação Automática de Vínculo:** Se o atendimento não tiver um `condominio_id`, o sistema agora cria o registro na tabela `condominios` e vincula o ID ao atendimento no momento do salvamento.
+3. **Novos Campos:** Adicionados campos de CNPJ, Administradora e Infraestrutura (Segurança, Monitoramento, Portaria) tanto no Schema quanto na UI.
+
+---
+
 ### Checklist de deploy seguro para Hostinger
 
 Antes de cada atualização, confirme:
 
 - [ ] Sem `alert()` em `index.html` ou `main.tsx`
-- [ ] Sem código de debug (`console.log` excessivos, textos como "CONEXÃO ATIVA ✅") em componentes
+- [ ] Sem código de debug (`console.log` excessivos) em componentes
 - [ ] `CACHE_VERSION` incrementado em `public/sw.js`
-- [ ] ZIP criado com `node create-zip.cjs` (não com PowerShell)
+- [ ] ZIP criado com `node create-zip.cjs` (comando: `node create-zip.cjs`)
 - [ ] Todos os arquivos antigos deletados do `public_html` antes de extrair o novo ZIP
 - [ ] Após extrair, verificar que `assets/` é uma **pasta** (não arquivos com `\` no nome)
 - [ ] Testar em aba anônima após o deploy
