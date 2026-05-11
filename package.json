@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && node -e \"const fs=require('fs');fs.copyFileSync('public/.htaccess','dist/.htaccess');console.log('.htaccess copied to dist/')\"",
+    "dev": "node scripts/sync-version.cjs && vite",
+    "build": "node scripts/sync-version.cjs && vite build && node -e \"const fs=require('fs');fs.copyFileSync('public/.htaccess','dist/.htaccess');console.log('.htaccess copied to dist/')\"",
     "build:dev": "vite build --mode development",
     "zip": "node create-zip.cjs",
     "deploy": "node deploy.cjs",

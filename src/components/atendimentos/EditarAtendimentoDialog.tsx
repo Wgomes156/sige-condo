@@ -30,8 +30,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus, Clock, History, Pencil, Trash2,
-  FileText, ExternalLink, Paperclip, X, Upload, UserCheck,
-  Loader2, Calendar,
+  FileText, ExternalLink, Paperclip, X, Upload, User, UserCheck,
+  Loader2, Calendar, Building2, MapPin, Shield, Info,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUpdateAtendimento, useDeleteAtendimento, type Atendimento } from "@/hooks/useAtendimentos";
@@ -48,8 +48,16 @@ import {
 } from "@/hooks/useAnexos";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useCondominio, useUpdateCondominio } from "@/hooks/useCondominios";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/utils";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Switch } from "@/components/ui/switch";
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 const safeFormatDate = (v?: string | null) => {
@@ -80,25 +88,53 @@ const STATUS = ["Em andamento", "Tem demanda", "Finalizado", "Aguardando retorno
 const MOTIVOS = ["Dúvida", "Reclamação", "Solicitação de serviço", "Informação", "Orçamento", "Cancelamento", "Outros"];
 const H_STATUS = ["Aguardando", "Em andamento", "Contrato fechado", "Encerrado sem contrato", "Outros"];
 
+const UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"];
+const TIPOS_IMOVEL = [
+  "Residencial Vertical (Apartamentos)",
+  "Residencial Horizontal (Casas)",
+  "Comercial",
+  "Misto (Residencial + Comercial)",
+  "Industrial"
+];
+
 const schema = z.object({
-  data: z.string().min(1),
-  hora: z.string().min(1),
-  operador_nome: z.string().min(1),
-  canal: z.string().min(1),
-  status: z.string().min(1),
-  motivo: z.string().min(1),
+  data: z.string().min(1, "Data é obrigatória"),
+  hora: z.string().min(1, "Hora é obrigatória"),
+  operador_nome: z.string().min(1, "Operador é obrigatório"),
+  canal: z.string().min(1, "Canal é obrigatório"),
+  status: z.string().min(1, "Status é obrigatório"),
+  motivo: z.string().min(1, "Motivo é obrigatório"),
   observacoes: z.string().optional(),
-  cliente_nome: z.string().min(1),
-  cliente_telefone: z.string().min(1),
-  cliente_email: z.string().email().optional().or(z.literal("")),
-  condominio_nome: z.string().min(1),
+  cliente_nome: z.string().min(1, "Nome do cliente é obrigatório"),
+  cliente_telefone: z.string().min(1, "Telefone do cliente é obrigatório"),
+  cliente_email: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  condominio_nome: z.string().min(1, "Nome do condomínio é obrigatório"),
+  // Campos do Condomínio
+  condominio_endereco: z.string().min(1, "Endereço é obrigatório"),
+  condominio_cidade: z.string().min(1, "Cidade é obrigatória"),
+  condominio_uf: z.string().min(1, "UF é obrigatória"),
+  condominio_tipo_imovel: z.string().min(1, "Tipo de imóvel é obrigatório"),
+  condominio_quantidade_unidades: z.coerce.number().min(1, "Mínimo 1 unidade"),
+  condominio_quantidade_blocos: z.coerce.number().min(1, "Mínimo 1 bloco"),
+  // Campos do Síndico
+  condominio_tem_sindico: z.boolean(),
+  condominio_sindico_nome: z.string().optional(),
+  condominio_sindico_telefone: z.string().optional(),
+}).refine((data) => {
+  if (data.condominio_tem_sindico && (!data.condominio_sindico_nome || data.condominio_sindico_nome.trim() === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Nome do síndico é obrigatório quando há síndico",
+  path: ["condominio_sindico_nome"],
 });
 
 type FormData = z.infer<typeof schema>;
 
 /* ── Subs ────────────────────────────────────────────────────────────────── */
 
-function HistoricoAnexos({ id, allowDelete }: { id: string; allowDelete?: boolean }) {
+function EditarHistoricoAnexos({ id, allowDelete }: { id: string; allowDelete?: boolean }) {
   const { data: anexos } = useAnexos("atendimento_historico", id);
   const del = useDeleteAnexo();
   if (!anexos?.length) return null;
@@ -152,6 +188,8 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   const updateHistorico = useUpdateAtendimentoHistorico();
   const deleteHistorico = useDeleteAtendimentoHistorico();
   const uploadAnexo = useUploadAnexo();
+  const { data: condominio, isLoading: loadingCondominio } = useCondominio(atendimento?.condominio_id || null);
+  const updateCondominio = useUpdateCondominio();
 
   // Debug: log quando historico muda
   useEffect(() => {
@@ -189,6 +227,16 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
       cliente_telefone: atendimento?.cliente_telefone || "",
       cliente_email: atendimento?.cliente_email || "",
       condominio_nome: atendimento?.condominio_nome || "",
+      // Condominio
+      condominio_endereco: condominio?.endereco || "",
+      condominio_cidade: condominio?.cidade || "",
+      condominio_uf: condominio?.uf || "",
+      condominio_tipo_imovel: condominio?.tipo_imovel || "",
+      condominio_quantidade_unidades: condominio?.quantidade_unidades || 1,
+      condominio_quantidade_blocos: condominio?.quantidade_blocos || 1,
+      condominio_tem_sindico: condominio?.tem_sindico || false,
+      condominio_sindico_nome: condominio?.sindico_nome || "",
+      condominio_sindico_telefone: condominio?.sindico_telefone || "",
     }
   });
 
@@ -206,10 +254,19 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         cliente_telefone: atendimento.cliente_telefone || "",
         cliente_email: atendimento.cliente_email || "",
         condominio_nome: atendimento.condominio_nome || "",
+        condominio_endereco: condominio?.endereco || "",
+        condominio_cidade: condominio?.cidade || "",
+        condominio_uf: condominio?.uf || "",
+        condominio_tipo_imovel: condominio?.tipo_imovel || "",
+        condominio_quantidade_unidades: condominio?.quantidade_unidades || 1,
+        condominio_quantidade_blocos: condominio?.quantidade_blocos || 1,
+        condominio_tem_sindico: condominio?.tem_sindico || false,
+        condominio_sindico_nome: condominio?.sindico_nome || "",
+        condominio_sindico_telefone: condominio?.sindico_telefone || "",
       });
       resetHForm();
     }
-  }, [open, atendimento, form]);
+  }, [open, atendimento, condominio, form]);
 
   if (!atendimento) {
     return (
@@ -261,7 +318,39 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
   const onSubmit = async (data: FormData) => {
     if (!atendimento) return;
-    await updateAtendimento.mutateAsync({ id: atendimento.id, ...data });
+    
+    // 1. Atualizar Atendimento
+    await updateAtendimento.mutateAsync({ 
+      id: atendimento.id, 
+      data: data.data,
+      hora: data.hora,
+      operador_nome: data.operador_nome,
+      canal: data.canal,
+      status: data.status,
+      motivo: data.motivo,
+      observacoes: data.observacoes,
+      cliente_nome: data.cliente_nome,
+      cliente_telefone: data.cliente_telefone,
+      cliente_email: data.cliente_email,
+      condominio_nome: data.condominio_nome
+    });
+
+    // 2. Atualizar Condomínio (se vinculado)
+    if (atendimento.condominio_id) {
+      await updateCondominio.mutateAsync({
+        id: atendimento.condominio_id,
+        endereco: data.condominio_endereco,
+        cidade: data.condominio_cidade,
+        uf: data.condominio_uf,
+        tipo_imovel: data.condominio_tipo_imovel,
+        quantidade_unidades: data.condominio_quantidade_unidades,
+        quantidade_blocos: data.condominio_quantidade_blocos,
+        tem_sindico: data.condominio_tem_sindico,
+        sindico_nome: data.condominio_tem_sindico ? data.condominio_sindico_nome : null,
+        sindico_telefone: data.condominio_tem_sindico ? data.condominio_sindico_telefone : null,
+      });
+    }
+
     onOpenChange(false);
   };
 
@@ -303,21 +392,207 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
           </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50 space-y-8">
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <Form {...form}>
             <form className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FormField control={form.control} name="data" render={({ field }) => (<FormItem><FormLabel>Data *</FormLabel><Input type="date" {...field} /></FormItem>)} />
-                <FormField control={form.control} name="hora" render={({ field }) => (<FormItem><FormLabel>Hora *</FormLabel><Input type="time" {...field} /></FormItem>)} />
-                <FormField control={form.control} name="status" render={({ field }) => (
-                  <FormItem><FormLabel>Status *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                    </Select></FormItem>
-                )} />
-              </div>
-              <FormField control={form.control} name="cliente_nome" render={({ field }) => (<FormItem><FormLabel>Nome do Cliente *</FormLabel><Input {...field} /></FormItem>)} />
-              <FormField control={form.control} name="observacoes" render={({ field }) => (<FormItem><FormLabel>Observações Gerais</FormLabel><Textarea rows={3} {...field} /></FormItem>)} />
+              <Accordion type="multiple" defaultValue={["cliente", "atendimento"]} className="space-y-4">
+                {/* Seção: Dados do Cliente */}
+                <AccordionItem value="cliente" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden border-b-0">
+                  <AccordionTrigger className="bg-slate-50 px-4 py-2 hover:no-underline border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Dados do Cliente</h3>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4 space-y-4">
+                    <FormField control={form.control} name="cliente_nome" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase">Nome do Cliente *</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="cliente_telefone" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold uppercase">Telefone *</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="cliente_email" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold uppercase">E-mail</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Seção: Dados do Condomínio */}
+                <AccordionItem value="condominio" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden border-b-0">
+                  <AccordionTrigger className="bg-slate-50 px-4 py-2 hover:no-underline border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Dados do Condomínio</h3>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4 space-y-4">
+                    <FormField control={form.control} name="condominio_nome" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase">Nome do Condomínio *</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    
+                    <FormField control={form.control} name="condominio_endereco" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase">Endereço *</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="condominio_cidade" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold uppercase">Cidade *</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="condominio_uf" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold uppercase">UF *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger></FormControl>
+                            <SelectContent>{UFS.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    <FormField control={form.control} name="condominio_tipo_imovel" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase">Tipo de Imóvel *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo..." /></SelectTrigger></FormControl>
+                          <SelectContent>{TIPOS_IMOVEL.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="condominio_quantidade_unidades" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold uppercase">Quantidade de Unidades *</FormLabel>
+                          <FormControl><Input type="number" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="condominio_quantidade_blocos" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold uppercase">Quantidade de Blocos *</FormLabel>
+                          <FormControl><Input type="number" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Seção: Síndico */}
+                <AccordionItem value="sindico" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden border-b-0">
+                  <AccordionTrigger className="bg-slate-50 px-4 py-2 hover:no-underline border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Síndico</h3>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4 space-y-4">
+                    <FormField control={form.control} name="condominio_tem_sindico" render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3 bg-slate-50/50">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-xs font-bold uppercase">Tem Síndico?</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )} />
+
+                    {form.watch("condominio_tem_sindico") && (
+                      <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <FormField control={form.control} name="condominio_sindico_nome" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold uppercase">Nome do Síndico *</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name="condominio_sindico_telefone" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold uppercase">Telefone</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Seção: Detalhes do Atendimento */}
+                <AccordionItem value="atendimento" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden border-b-0">
+                  <AccordionTrigger className="bg-slate-50 px-4 py-2 hover:no-underline border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Detalhes do Atendimento</h3>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="data" render={({ field }) => (
+                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Data *</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                      )} />
+                      <FormField control={form.control} name="hora" render={({ field }) => (
+                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Hora *</FormLabel><FormControl><Input type="time" {...field} /></FormControl></FormItem>
+                      )} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="status" render={({ field }) => (
+                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Status *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                          </Select></FormItem>
+                      )} />
+                      <FormField control={form.control} name="canal" render={({ field }) => (
+                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Canal *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>{CANAIS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                          </Select></FormItem>
+                      )} />
+                    </div>
+                    <FormField control={form.control} name="motivo" render={({ field }) => (
+                      <FormItem><FormLabel className="text-[10px] font-bold uppercase">Motivo *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>{MOTIVOS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                        </Select></FormItem>
+                    )} />
+                    <FormField control={form.control} name="operador_nome" render={({ field }) => (
+                      <FormItem><FormLabel className="text-[10px] font-bold uppercase">Operador *</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                    )} />
+                    <FormField control={form.control} name="observacoes" render={({ field }) => (
+                      <FormItem><FormLabel className="text-[10px] font-bold uppercase">Observações Gerais</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl></FormItem>
+                    )} />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </form>
           </Form>
 
@@ -458,7 +733,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
                       </div>
                     </div>
                     <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border-l-4 border-orange-500 italic">"{item.detalhes || "—"}"</p>
-                    <HistoricoAnexos id={item.id} allowDelete />
+                    <EditarHistoricoAnexos id={item.id} allowDelete />
                   </div>
                 )
               ))}

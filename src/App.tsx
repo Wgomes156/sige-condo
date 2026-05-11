@@ -39,54 +39,92 @@ const queryClient = new QueryClient();
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <Routes>
-                    {/* Portal do Morador - sem MainLayout para interface simplificada */}
-                    <Route path="/portal" element={<PortalMorador />} />
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Portal do Morador */}
+              <Route 
+                path="/portal" 
+                element={
+                  <ProtectedRoute allowedRoles={["morador", "admin"]}>
+                    <PortalMorador />
+                  </ProtectedRoute>
+                } 
+              />
 
-                    {/* Rotas administrativas */}
-                    <Route path="/" element={<MainLayout><Dashboard /></MainLayout>} />
-                    <Route path="/condominio/:id" element={<MainLayout><DashboardCondominio /></MainLayout>} />
-                    <Route path="/atendimentos" element={<MainLayout><Atendimentos /></MainLayout>} />
-                    <Route path="/condominios" element={<MainLayout><Condominios /></MainLayout>} />
-                    <Route path="/comunicados" element={<MainLayout><Comunicados /></MainLayout>} />
-                    <Route path="/financeiro" element={<MainLayout><Financeiro /></MainLayout>} />
-                    <Route path="/boletos" element={<MainLayout><Boletos /></MainLayout>} />
-                    <Route path="/boletos/recorrentes" element={<MainLayout><BoletosRecorrentes /></MainLayout>} />
-                    <Route path="/contas-bancarias" element={<MainLayout><ContasBancarias /></MainLayout>} />
-                    <Route path="/ordens-servico" element={<MainLayout><OrdensServico /></MainLayout>} />
-                    <Route path="/ocorrencias" element={<MainLayout><OcorrenciasCondominio /></MainLayout>} />
-                    <Route path="/demandas" element={<MainLayout><Demandas /></MainLayout>} />
-                    <Route path="/servicos" element={<MainLayout><Servicos /></MainLayout>} />
-                    <Route path="/propostas" element={<MainLayout><Propostas /></MainLayout>} />
-                    <Route path="/acordos" element={<MainLayout><Acordos /></MainLayout>} />
-                    <Route path="/reservas" element={<MainLayout><Reservas /></MainLayout>} />
-                    <Route path="/relatorios" element={<MainLayout><Relatorios /></MainLayout>} />
-                    <Route path="/relatorios/inadimplencia" element={<MainLayout><RelatorioInadimplencia /></MainLayout>} />
-                    <Route path="/unidades" element={<MainLayout><Unidades /></MainLayout>} />
-                    <Route path="/usuarios" element={<MainLayout><Usuarios /></MainLayout>} />
-                    <Route path="/auditoria" element={<MainLayout><AuditLogs /></MainLayout>} />
-                    <Route path="/configuracoes" element={<MainLayout><Configuracoes /></MainLayout>} />
-                    <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
-                  </Routes>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+              {/* Rotas Administrativas - Admin e Gerente */}
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "gerente", "operador"]}>
+                    <MainLayout>
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/condominio/:id" element={<DashboardCondominio />} />
+                        
+                        {/* Atendimentos e Demandas - Operador também acessa */}
+                        <Route path="/atendimentos" element={<Atendimentos />} />
+                        <Route path="/demandas" element={<Demandas />} />
+                        <Route path="/servicos" element={<Servicos />} />
+                        <Route path="/ocorrencias" element={<OcorrenciasCondominio />} />
+                        <Route path="/ordens-servico" element={<OrdensServico />} />
+                        <Route path="/reservas" element={<Reservas />} />
+
+                        {/* Gestão de Condomínio e Financeiro - Geralmente Gerente+ */}
+                        <Route path="/condominios" element={<Condominios />} />
+                        <Route path="/unidades" element={<Unidades />} />
+                        <Route path="/comunicados" element={<Comunicados />} />
+                        <Route path="/financeiro" element={<Financeiro />} />
+                        <Route path="/boletos" element={<Boletos />} />
+                        <Route path="/boletos/recorrentes" element={<BoletosRecorrentes />} />
+                        <Route path="/propostas" element={<Propostas />} />
+                        <Route path="/acordos" element={<Acordos />} />
+                        <Route path="/relatorios" element={<Relatorios />} />
+                        <Route path="/relatorios/inadimplencia" element={<RelatorioInadimplencia />} />
+                        <Route path="/configuracoes" element={<Configuracoes />} />
+
+                        {/* Apenas Admin */}
+                        <Route 
+                          path="/usuarios" 
+                          element={
+                            <ProtectedRoute allowedRoles={["admin"]}>
+                              <Usuarios />
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/contas-bancarias" 
+                          element={
+                            <ProtectedRoute allowedRoles={["admin"]}>
+                              <ContasBancarias />
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/auditoria" 
+                          element={
+                            <ProtectedRoute allowedRoles={["admin"]}>
+                              <AuditLogs />
+                            </ProtectedRoute>
+                          } 
+                        />
+
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   </ErrorBoundary>
 );
 

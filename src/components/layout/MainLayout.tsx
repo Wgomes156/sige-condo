@@ -3,6 +3,7 @@ import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { useState, createContext, useContext } from "react";
 import { AssistenteIAChat } from "@/components/atendimentos/AssistenteIAChat";
+import { SystemVersionFooter } from "./SystemVersionFooter";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -52,6 +53,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-auto scroll-smooth-mobile">
               {children}
             </main>
+            <SystemVersionFooter />
           </div>
 
           {/* Floating Button para Assistente IA — sobe acima da nav em mobile */}

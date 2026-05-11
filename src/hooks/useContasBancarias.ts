@@ -84,44 +84,22 @@ export function useContasBancarias() {
     try {
       const { data, error: fetchError } = await supabase
         .from("contas_bancarias")
-        .select("*")
+        .select(`
+          *,
+          condominios(nome),
+          administradoras(nome)
+        `)
         .order("nome_conta");
 
       if (fetchError) throw fetchError;
 
-      // Fetch condominio and administradora names separately
-      const contasWithNames: ContaBancaria[] = [];
+      const formattedData: ContaBancaria[] = (data || []).map((conta) => ({
+        ...conta,
+        condominio_nome: (conta.condominios as any)?.nome,
+        administradora_nome: (conta.administradoras as any)?.nome,
+      }));
 
-      for (const conta of data || []) {
-        let condominio_nome: string | undefined;
-        let administradora_nome: string | undefined;
-
-        if (conta.condominio_id) {
-          const { data: condData } = await supabase
-            .from("condominios")
-            .select("nome")
-            .eq("id", conta.condominio_id)
-            .single();
-          condominio_nome = condData?.nome;
-        }
-
-        if (conta.administradora_id) {
-          const { data: admData } = await supabase
-            .from("administradoras")
-            .select("nome")
-            .eq("id", conta.administradora_id)
-            .single();
-          administradora_nome = admData?.nome;
-        }
-
-        contasWithNames.push({
-          ...conta,
-          condominio_nome,
-          administradora_nome,
-        });
-      }
-
-      setContas(contasWithNames);
+      setContas(formattedData);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao carregar contas";
       setError(message);

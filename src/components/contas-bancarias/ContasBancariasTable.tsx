@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { maskAccountNumber, maskDocument } from "@/lib/masking";
 import {
   Table,
   TableBody,
@@ -134,7 +135,7 @@ export function ContasBancariasTable({
                     {conta.agencia_digito && `-${conta.agencia_digito}`}
                   </div>
                   <div>
-                    Cc: {conta.conta}
+                    Cc: {maskAccountNumber(conta.conta)}
                     {conta.conta_digito && `-${conta.conta_digito}`}
                   </div>
                 </div>
@@ -143,7 +144,7 @@ export function ContasBancariasTable({
                 <div className="flex flex-col">
                   <span className="text-sm">{conta.titular_nome}</span>
                   <span className="text-xs text-muted-foreground">
-                    {conta.titular_documento}
+                    {maskDocument(conta.titular_documento)}
                   </span>
                 </div>
               </TableCell>

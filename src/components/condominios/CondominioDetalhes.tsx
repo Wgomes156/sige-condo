@@ -76,12 +76,19 @@ export const CondominioDetalhes = forwardRef<HTMLDivElement, CondominioDetalhesP
               </h3>
               <Separator />
               <div className="space-y-2">
-                {condominio.endereco && (
-                  <p className="text-sm">{condominio.endereco}</p>
-                )}
-                <p className="text-sm text-muted-foreground">
-                  {[condominio.cidade, condominio.uf].filter(Boolean).join(" - ") || "Localização não informada"}
-                </p>
+                <div className="space-y-1">
+                  {condominio.endereco && (
+                    <p className="text-sm font-medium">
+                      {condominio.endereco}{condominio.numero ? `, ${condominio.numero}` : ""}
+                    </p>
+                  )}
+                  {condominio.bairro && (
+                    <p className="text-sm text-muted-foreground">Bairro: {condominio.bairro}</p>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    {[condominio.cep ? `CEP: ${condominio.cep}` : null, condominio.cidade, condominio.uf].filter(Boolean).join(" - ") || "Localização não informada"}
+                  </p>
+                </div>
               </div>
             </div>
 

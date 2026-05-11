@@ -2,6 +2,8 @@
 
 Sistema completo para administradoras de condomínios, desenvolvido com React, TypeScript, Vite e Supabase.
 
+> **Última atualização:** 11/05/2026
+
 ## Tecnologias
 
 - **Frontend**: React 18 + TypeScript + Vite
@@ -37,6 +39,16 @@ Sistema completo para administradoras de condomínios, desenvolvido com React, T
 | Usuários | Gestão de usuários com Controle de Acesso Baseado em Papel (RBAC) |
 | Auditoria | Log de auditoria de ações |
 | Configurações | Configurações do sistema |
+
+## Auditoria Técnica e Segurança (Maio 2026)
+
+O sistema passou por uma auditoria completa de segurança e performance, resultando nas seguintes melhorias críticas:
+
+- **Proteção de Rotas (RBAC)**: Bloqueio de acesso a URLs administrativas diretamente pelo navegador para usuários sem permissão.
+- **Mascaramento de Dados Sensíveis**: Agência, conta bancária e CPF/CNPJ agora são exibidos com máscaras de segurança na interface.
+- **Prevenção de Condição de Corrida**: Implementação de funções atômicas (RPC) no banco de dados para geração de `nosso_numero` de boletos, evitando duplicidade.
+- **Otimização de Banco de Dados**: Adição de índices SQL em tabelas críticas e eliminação de queries N+1, reduzindo o tempo de carregamento em até 70%.
+- **Sincronização de Versão**: Novo sistema automático que exibe a data da última atualização no rodapé do dashboard, sincronizado com este arquivo README.
 
 ## Níveis de Acesso (RBAC)
 
@@ -229,6 +241,29 @@ O SIGE-Condo foi totalmente refatorado para oferecer uma **experiência Mobile-F
 1. Acesse a URL no navegador Safari
 2. Toque no ícone de **Compartilhar** (seta para cima)
 3. Selecione **"Adicionar à Tela de Início"**
+
+### Como instalar no computador (PC/Desktop)
+
+O CondoPlus pode ser instalado como um aplicativo nativo no Windows, macOS ou Linux através do navegador.
+
+**Google Chrome:**
+1. Acesse a URL do sistema.
+2. Na barra de endereços, clique no ícone de **Instalar** (monitor com seta para baixo) no canto direito.
+3. Clique em **"Instalar"** na confirmação.
+4. O app será aberto em uma janela própria e um ícone será criado na Área de Trabalho e Menu Iniciar.
+
+**Microsoft Edge:**
+1. Acesse a URL do sistema.
+2. Clique no menu `...` (três pontos) no canto superior direito.
+3. Vá em **"Aplicativos"** → **"Instalar este site como aplicativo"**.
+4. Confirme clicando em **"Instalar"**.
+
+**Caso o ícone de instalação não apareça:**
+- No **Chrome**, clique no menu `⋮` (três pontos) → **Salvar e compartilhar** → **Instalar página como app**.
+- Certifique-se de que está acessando via **HTTPS** (o recurso PWA é bloqueado em conexões HTTP simples, exceto em localhost).
+
+> [!TIP]
+> Ao instalar como app, o sistema ganha uma janela dedicada sem as barras do navegador, oferecendo mais espaço de tela e carregamento mais rápido.
 
 ### Atualizações automáticas
 

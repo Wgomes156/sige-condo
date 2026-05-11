@@ -159,42 +159,19 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
     setCurrentStep(1);
   };
 
-  // Resolve nosso_numero: max(conta_seq, db_max+1, timestamp_based)
   const resolverNossoNumero = async (): Promise<string> => {
-    // Timestamp seed — changes every second, virtually unique
-    const tsSeed = Math.floor(Date.now() / 1000) % 90000000 + 10000000;
-    let candidato = tsSeed;
-
-    // 1. Conta's own sequence
     try {
-      const { data: contaData } = await supabase
-        .from("contas_bancarias")
-        .select("nosso_numero_atual, nosso_numero_inicio")
-        .eq("id", contaCondominio!.id)
-        .single();
-      if (contaData) {
-        const seq = contaData.nosso_numero_atual ?? (contaData.nosso_numero_inicio ?? 1);
-        candidato = Math.max(candidato, seq);
-      }
-    } catch { /* ignore */ }
+      const { data, error } = await supabase.rpc("get_next_nosso_numero", {
+        _conta_id: contaCondominio!.id,
+      });
 
-    // 2. Max nosso_numero currently in boletos table (pull all, parse client-side)
-    try {
-      const { data: rows } = await supabase
-        .from("boletos")
-        .select("nosso_numero")
-        .not("nosso_numero", "is", null);
-      if (rows && rows.length > 0) {
-        const nums = rows
-          .map((r: any) => parseInt(r.nosso_numero, 10))
-          .filter((n: number) => !isNaN(n));
-        if (nums.length > 0) {
-          candidato = Math.max(candidato, Math.max(...nums) + 1);
-        }
-      }
-    } catch { /* ignore */ }
-
-    return candidato.toString().padStart(8, "0");
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("Erro ao gerar nosso número via RPC:", err);
+      // Fallback timestamp based (last resort)
+      return (Math.floor(Date.now() / 1000) % 90000000 + 10000000).toString();
+    }
   };
 
   // Build the BoletoCalculado preview before showing step 3
@@ -280,13 +257,6 @@ export function EmissaoBoletoWizard({ open, onOpenChange }: EmissaoBoletoWizardP
         instrucoes: step2Data.instrucoes || undefined,
         nosso_numero: boletoPreview.nossoNumero,
       });
-
-      // Only increment nosso_numero_atual after successful insert
-      const proximoNum = parseInt(boletoPreview.nossoNumero, 10);
-      await supabase
-        .from("contas_bancarias")
-        .update({ nosso_numero_atual: proximoNum + 1 })
-        .eq("id", contaCondominio.id);
 
       setBoletoEmitido({
         ...boleto,
