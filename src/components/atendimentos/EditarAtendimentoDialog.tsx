@@ -48,7 +48,7 @@ import {
 } from "@/hooks/useAnexos";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useCondominio, useUpdateCondominio } from "@/hooks/useCondominios";
+import { useCondominio, useUpdateCondominio, useCreateCondominio } from "@/hooks/useCondominios";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/utils";
 import {
@@ -110,16 +110,24 @@ const schema = z.object({
   cliente_email: z.string().email("E-mail inválido").optional().or(z.literal("")),
   condominio_nome: z.string().min(1, "Nome do condomínio é obrigatório"),
   // Campos do Condomínio
-  condominio_endereco: z.string().min(1, "Endereço é obrigatório"),
-  condominio_cidade: z.string().min(1, "Cidade é obrigatória"),
-  condominio_uf: z.string().min(1, "UF é obrigatória"),
-  condominio_tipo_imovel: z.string().min(1, "Tipo de imóvel é obrigatório"),
-  condominio_quantidade_unidades: z.coerce.number().min(1, "Mínimo 1 unidade"),
-  condominio_quantidade_blocos: z.coerce.number().min(1, "Mínimo 1 bloco"),
+  condominio_cnpj: z.string().optional(),
+  condominio_endereco: z.string().optional().or(z.literal("")),
+  condominio_cidade: z.string().optional().or(z.literal("")),
+  condominio_uf: z.string().optional().or(z.literal("")),
+  condominio_tipo_imovel: z.string().optional().or(z.literal("")),
+  condominio_quantidade_unidades: z.coerce.number().optional().default(0),
+  condominio_quantidade_blocos: z.coerce.number().optional().default(0),
   // Campos do Síndico
-  condominio_tem_sindico: z.boolean(),
-  condominio_sindico_nome: z.string().optional(),
-  condominio_sindico_telefone: z.string().optional(),
+  condominio_tem_sindico: z.boolean().default(false),
+  condominio_sindico_nome: z.string().optional().or(z.literal("")),
+  condominio_sindico_telefone: z.string().optional().or(z.literal("")),
+  // Administradora
+  condominio_tem_administradora: z.boolean().default(false),
+  condominio_nome_administradora: z.string().optional().or(z.literal("")),
+  // Infraestrutura
+  condominio_tem_seguranca: z.boolean().default(false),
+  condominio_tem_porteiro: z.string().optional().or(z.literal("")),
+  condominio_tem_monitoramento: z.boolean().default(false),
 }).refine((data) => {
   if (data.condominio_tem_sindico && (!data.condominio_sindico_nome || data.condominio_sindico_nome.trim() === "")) {
     return false;
@@ -190,6 +198,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   const uploadAnexo = useUploadAnexo();
   const { data: condominio, isLoading: loadingCondominio } = useCondominio(atendimento?.condominio_id || null);
   const updateCondominio = useUpdateCondominio();
+  const createCondominio = useCreateCondominio();
 
   // Debug: log quando historico muda
   useEffect(() => {
@@ -228,15 +237,21 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
       cliente_email: atendimento?.cliente_email || "",
       condominio_nome: atendimento?.condominio_nome || "",
       // Condominio
+      condominio_cnpj: condominio?.cnpj || "",
       condominio_endereco: condominio?.endereco || "",
       condominio_cidade: condominio?.cidade || "",
       condominio_uf: condominio?.uf || "",
       condominio_tipo_imovel: condominio?.tipo_imovel || "",
-      condominio_quantidade_unidades: condominio?.quantidade_unidades || 1,
-      condominio_quantidade_blocos: condominio?.quantidade_blocos || 1,
+      condominio_quantidade_unidades: condominio?.quantidade_unidades || 0,
+      condominio_quantidade_blocos: condominio?.quantidade_blocos || 0,
       condominio_tem_sindico: condominio?.tem_sindico || false,
       condominio_sindico_nome: condominio?.sindico_nome || "",
       condominio_sindico_telefone: condominio?.sindico_telefone || "",
+      condominio_tem_administradora: condominio?.tem_administradora || false,
+      condominio_nome_administradora: condominio?.nome_administradora || "",
+      condominio_tem_seguranca: condominio?.tem_seguranca || false,
+      condominio_tem_porteiro: condominio?.tem_porteiro || "Não",
+      condominio_tem_monitoramento: condominio?.tem_monitoramento || false,
     }
   });
 
@@ -254,15 +269,21 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         cliente_telefone: atendimento.cliente_telefone || "",
         cliente_email: atendimento.cliente_email || "",
         condominio_nome: atendimento.condominio_nome || "",
+        condominio_cnpj: condominio?.cnpj || "",
         condominio_endereco: condominio?.endereco || "",
         condominio_cidade: condominio?.cidade || "",
         condominio_uf: condominio?.uf || "",
         condominio_tipo_imovel: condominio?.tipo_imovel || "",
-        condominio_quantidade_unidades: condominio?.quantidade_unidades || 1,
-        condominio_quantidade_blocos: condominio?.quantidade_blocos || 1,
+        condominio_quantidade_unidades: condominio?.quantidade_unidades || 0,
+        condominio_quantidade_blocos: condominio?.quantidade_blocos || 0,
         condominio_tem_sindico: condominio?.tem_sindico || false,
         condominio_sindico_nome: condominio?.sindico_nome || "",
         condominio_sindico_telefone: condominio?.sindico_telefone || "",
+        condominio_tem_administradora: condominio?.tem_administradora || false,
+        condominio_nome_administradora: condominio?.nome_administradora || "",
+        condominio_tem_seguranca: condominio?.tem_seguranca || false,
+        condominio_tem_porteiro: condominio?.tem_porteiro || "Não",
+        condominio_tem_monitoramento: condominio?.tem_monitoramento || false,
       });
       resetHForm();
     }
@@ -319,39 +340,78 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   const onSubmit = async (data: FormData) => {
     if (!atendimento) return;
     
-    // 1. Atualizar Atendimento
-    await updateAtendimento.mutateAsync({ 
-      id: atendimento.id, 
-      data: data.data,
-      hora: data.hora,
-      operador_nome: data.operador_nome,
-      canal: data.canal,
-      status: data.status,
-      motivo: data.motivo,
-      observacoes: data.observacoes,
-      cliente_nome: data.cliente_nome,
-      cliente_telefone: data.cliente_telefone,
-      cliente_email: data.cliente_email,
-      condominio_nome: data.condominio_nome
-    });
+    let currentCondominioId = atendimento.condominio_id;
 
-    // 2. Atualizar Condomínio (se vinculado)
-    if (atendimento.condominio_id) {
-      await updateCondominio.mutateAsync({
-        id: atendimento.condominio_id,
-        endereco: data.condominio_endereco,
-        cidade: data.condominio_cidade,
-        uf: data.condominio_uf,
-        tipo_imovel: data.condominio_tipo_imovel,
-        quantidade_unidades: data.condominio_quantidade_unidades,
-        quantidade_blocos: data.condominio_quantidade_blocos,
-        tem_sindico: data.condominio_tem_sindico,
-        sindico_nome: data.condominio_tem_sindico ? data.condominio_sindico_nome : null,
-        sindico_telefone: data.condominio_tem_sindico ? data.condominio_sindico_telefone : null,
+    try {
+      // 1. Criar ou Atualizar Condomínio
+      if (!currentCondominioId && (data.condominio_endereco || data.condominio_cidade)) {
+        console.log("[onSubmit] Criando novo condomínio para vincular ao atendimento...");
+        const newCond = await createCondominio.mutateAsync({
+          nome: data.condominio_nome,
+          cnpj: data.condominio_cnpj,
+          endereco: data.condominio_endereco,
+          cidade: data.condominio_cidade,
+          uf: data.condominio_uf,
+          tipo_imovel: data.condominio_tipo_imovel,
+          quantidade_unidades: data.condominio_quantidade_unidades,
+          quantidade_blocos: data.condominio_quantidade_blocos,
+          tem_sindico: data.condominio_tem_sindico,
+          sindico_nome: data.condominio_tem_sindico ? data.condominio_sindico_nome : null,
+          sindico_telefone: data.condominio_tem_sindico ? data.condominio_sindico_telefone : null,
+          tem_administradora: data.condominio_tem_administradora,
+          nome_administradora: data.condominio_tem_administradora ? data.condominio_nome_administradora : null,
+          tem_seguranca: data.condominio_tem_seguranca,
+          tem_porteiro: data.condominio_tem_porteiro,
+          tem_monitoramento: data.condominio_tem_monitoramento,
+        });
+        currentCondominioId = newCond.id;
+        console.log("[onSubmit] Novo condomínio criado com ID:", currentCondominioId);
+      } else if (currentCondominioId) {
+        console.log("[onSubmit] Atualizando condomínio vinculado:", currentCondominioId);
+        await updateCondominio.mutateAsync({
+          id: currentCondominioId,
+          nome: data.condominio_nome,
+          cnpj: data.condominio_cnpj,
+          endereco: data.condominio_endereco,
+          cidade: data.condominio_cidade,
+          uf: data.condominio_uf,
+          tipo_imovel: data.condominio_tipo_imovel,
+          quantidade_unidades: data.condominio_quantidade_unidades,
+          quantidade_blocos: data.condominio_quantidade_blocos,
+          tem_sindico: data.condominio_tem_sindico,
+          sindico_nome: data.condominio_tem_sindico ? data.condominio_sindico_nome : null,
+          sindico_telefone: data.condominio_tem_sindico ? data.condominio_sindico_telefone : null,
+          tem_administradora: data.condominio_tem_administradora,
+          nome_administradora: data.condominio_tem_administradora ? data.condominio_nome_administradora : null,
+          tem_seguranca: data.condominio_tem_seguranca,
+          tem_porteiro: data.condominio_tem_porteiro,
+          tem_monitoramento: data.condominio_tem_monitoramento,
+        });
+      }
+
+      // 2. Atualizar Atendimento
+      console.log("[onSubmit] Atualizando atendimento:", atendimento.id, "ID Condomínio:", currentCondominioId);
+      await updateAtendimento.mutateAsync({ 
+        id: atendimento.id, 
+        data: data.data,
+        hora: data.hora,
+        operador_nome: data.operador_nome,
+        canal: data.canal,
+        status: data.status,
+        motivo: data.motivo,
+        observacoes: data.observacoes,
+        cliente_nome: data.cliente_nome,
+        cliente_telefone: data.cliente_telefone,
+        cliente_email: data.cliente_email,
+        condominio_nome: data.condominio_nome,
+        condominio_id: currentCondominioId
       });
-    }
 
-    onOpenChange(false);
+      console.log("[onSubmit] Sucesso completo. Fechando dialog.");
+      onOpenChange(false);
+    } catch (error) {
+      console.error("[onSubmit] Erro ao salvar:", error);
+    }
   };
 
   const saving = createHistorico.isPending || updateHistorico.isPending || uploadAnexo.isPending;
@@ -394,7 +454,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <Form {...form}>
-            <form className="space-y-6">
+            <form id="edit-atendimento-form" onSubmit={form.handleSubmit(onSubmit, (err) => console.error("[Form] Erros de validação:", err))} className="space-y-6">
               <Accordion type="multiple" defaultValue={["cliente", "atendimento"]} className="space-y-4">
                 {/* Seção: Dados do Cliente */}
                 <AccordionItem value="cliente" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden border-b-0">
@@ -440,13 +500,22 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="p-4 space-y-4">
-                    <FormField control={form.control} name="condominio_nome" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-bold uppercase">Nome do Condomínio *</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="condominio_nome" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold uppercase">Nome do Condomínio *</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="condominio_cnpj" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold uppercase">CNPJ</FormLabel>
+                          <FormControl><Input placeholder="00.000.000/0000-00" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
                     
                     <FormField control={form.control} name="condominio_endereco" render={({ field }) => (
                       <FormItem>
@@ -544,6 +613,81 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
                         )} />
                       </div>
                     )}
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Seção: Administradora */}
+                <AccordionItem value="administradora" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden border-b-0">
+                  <AccordionTrigger className="bg-slate-50 px-4 py-2 hover:no-underline border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Administradora</h3>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4 space-y-4">
+                    <FormField control={form.control} name="condominio_tem_administradora" render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3 bg-slate-50/50">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-xs font-bold uppercase">Tem Administradora?</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )} />
+
+                    {form.watch("condominio_tem_administradora") && (
+                      <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <FormField control={form.control} name="condominio_nome_administradora" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold uppercase">Nome da Administradora</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Seção: Infraestrutura */}
+                <AccordionItem value="infraestrutura" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden border-b-0">
+                  <AccordionTrigger className="bg-slate-50 px-4 py-2 hover:no-underline border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Infraestrutura</h3>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="condominio_tem_seguranca" render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-3 bg-slate-50/50">
+                          <FormLabel className="text-xs font-bold uppercase">Segurança Patrimonial?</FormLabel>
+                          <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="condominio_tem_monitoramento" render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-3 bg-slate-50/50">
+                          <FormLabel className="text-xs font-bold uppercase">Monitoramento (Câmeras)?</FormLabel>
+                          <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        </FormItem>
+                      )} />
+                    </div>
+                    <FormField control={form.control} name="condominio_tem_porteiro" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase">Portaria</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="Não">Não possui</SelectItem>
+                            <SelectItem value="Sim 24h">Sim, 24h</SelectItem>
+                            <SelectItem value="Sim 12h">Sim, 12h</SelectItem>
+                            <SelectItem value="Sim 8h">Sim, Horário comercial</SelectItem>
+                            <SelectItem value="Remota">Portaria Remota</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )} />
                   </AccordionContent>
                 </AccordionItem>
 
@@ -743,8 +887,13 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
         <div className="p-6 border-t bg-white flex justify-end gap-3 shrink-0">
           <Button type="button" variant="outline" className="h-11 px-6 font-semibold" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button type="button" variant="default" className="h-11 px-8 font-bold bg-orange-500 text-white hover:bg-orange-600 shadow-lg"
-            onClick={form.handleSubmit(onSubmit)} disabled={updateAtendimento.isPending}>
+          <Button 
+            type="submit" 
+            form="edit-atendimento-form"
+            variant="default" 
+            className="h-11 px-8 font-bold bg-orange-500 text-white hover:bg-orange-600 shadow-lg"
+            disabled={updateAtendimento.isPending}
+          >
             {updateAtendimento.isPending ? "Salvando..." : "Salvar Alterações"}
           </Button>
         </div>
