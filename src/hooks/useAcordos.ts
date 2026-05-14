@@ -486,7 +486,7 @@ export function useAcordos(filters?: UseAcordosFilters) {
 
       // Gerar parcelas negociadas
       const parcelasNegociadas = [];
-      let dataVencimento = new Date(dados.data_primeiro_vencimento);
+      const dataVencimento = new Date(dados.data_primeiro_vencimento);
 
       for (let i = 1; i <= dados.qtd_parcelas; i++) {
         parcelasNegociadas.push({

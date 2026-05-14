@@ -31,10 +31,10 @@ export const validateCnpj = (cnpj: string): boolean => {
     peso = peso === 2 ? 9 : peso - 1;
   }
   let resto = soma % 11;
-  let digito1 = resto < 2 ? 0 : 11 - resto;
-  
+  const digito1 = resto < 2 ? 0 : 11 - resto;
+
   if (parseInt(digits[12]) !== digito1) return false;
-  
+
   // Validação do segundo dígito verificador
   soma = 0;
   peso = 6;
@@ -43,7 +43,7 @@ export const validateCnpj = (cnpj: string): boolean => {
     peso = peso === 2 ? 9 : peso - 1;
   }
   resto = soma % 11;
-  let digito2 = resto < 2 ? 0 : 11 - resto;
+  const digito2 = resto < 2 ? 0 : 11 - resto;
   
   if (parseInt(digits[13]) !== digito2) return false;
   
@@ -76,17 +76,17 @@ export const validateCpf = (cpf: string): boolean => {
     soma += parseInt(digits[i]) * (10 - i);
   }
   let resto = (soma * 10) % 11;
-  let digito1 = resto === 10 ? 0 : resto;
-  
+  const digito1 = resto === 10 ? 0 : resto;
+
   if (parseInt(digits[9]) !== digito1) return false;
-  
+
   // Validação do segundo dígito verificador
   soma = 0;
   for (let i = 0; i < 10; i++) {
     soma += parseInt(digits[i]) * (11 - i);
   }
   resto = (soma * 10) % 11;
-  let digito2 = resto === 10 ? 0 : resto;
+  const digito2 = resto === 10 ? 0 : resto;
   
   if (parseInt(digits[10]) !== digito2) return false;
   

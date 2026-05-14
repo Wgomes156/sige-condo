@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -11,8 +12,11 @@ import {
 } from "@/components/ui/select";
 import { ComunicadosTable } from "@/components/comunicados/ComunicadosTable";
 import { NovoComunicadoForm } from "@/components/comunicados/NovoComunicadoForm";
+import { EntregasTable } from "@/components/mensageria/EntregasTable";
+import { DispararMensagemDialog } from "@/components/mensageria/DispararMensagemDialog";
 import { useComunicados, Comunicado } from "@/hooks/useComunicados";
 import { useCondominios } from "@/hooks/useCondominios";
+import { useMensageriaEntregas } from "@/hooks/useMensageria";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Comunicados() {
@@ -20,13 +24,31 @@ export default function Comunicados() {
   const [comunicadoEdit, setComunicadoEdit] = useState<Comunicado | null>(null);
   const [filtroCondominio, setFiltroCondominio] = useState<string>("todos");
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
-  const { userRole } = useAuth();
+  const [activeTab, setActiveTab] = useState("lista");
 
+  // Estado para o disparo de mensagem via Mensageria
+  const [dispararOpen, setDispararOpen] = useState(false);
+  const [comunicadoParaEnvio, setComunicadoParaEnvio] = useState<Comunicado | null>(null);
+
+  // Estado para aba "Histórico de Envios" — comunicado selecionado para ver histórico
+  const [comunicadoHistorico, setComunicadoHistorico] = useState<Comunicado | null>(null);
+
+  const { userRole } = useAuth();
   const { data: condominios } = useCondominios();
   const canCreate = userRole !== "morador";
+
   const { data: comunicados, isLoading } = useComunicados(
-    filtroCondominio !== "todos" ? filtroCondominio : undefined
+    filtroCondominio !== "todos" ? filtroCondominio : undefined,
   );
+
+  const { data: entregasHistorico = [], isLoading: loadingHistorico } = useMensageriaEntregas(
+    comunicadoHistorico ? { condominioId: comunicadoHistorico.condominio_id } : undefined,
+  );
+
+  // Filtrar entregasHistorico pelo comunicado_id selecionado
+  const entregasFiltradas = comunicadoHistorico
+    ? entregasHistorico.filter((e) => e.comunicado_id === comunicadoHistorico.id)
+    : [];
 
   const tipoOptions = [
     { value: "aviso", label: "Aviso" },
@@ -48,16 +70,26 @@ export default function Comunicados() {
 
   const handleCloseForm = (open: boolean) => {
     setShowForm(open);
-    if (!open) {
-      setComunicadoEdit(null);
-    }
+    if (!open) setComunicadoEdit(null);
+  };
+
+  const handleEnviarMoradores = (comunicado: Comunicado) => {
+    setComunicadoParaEnvio(comunicado);
+    setDispararOpen(true);
+  };
+
+  const handleVerHistorico = (comunicado: Comunicado) => {
+    setComunicadoHistorico(comunicado);
+    setActiveTab("historico");
   };
 
   const comunicadosAtivos = comunicadosFiltrados?.filter((c) => c.ativo).length || 0;
-  const comunicadosUrgentes = comunicadosFiltrados?.filter((c) => c.tipo === "urgente" && c.ativo).length || 0;
+  const comunicadosUrgentes =
+    comunicadosFiltrados?.filter((c) => c.tipo === "urgente" && c.ativo).length || 0;
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Comunicados</h1>
@@ -73,6 +105,7 @@ export default function Comunicados() {
         )}
       </div>
 
+      {/* Cards de resumo */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -106,58 +139,115 @@ export default function Comunicados() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Lista de Comunicados</CardTitle>
-            <div className="flex gap-2">
-              <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filtrar por tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os tipos</SelectItem>
-                  {tipoOptions.map((tipo) => (
-                    <SelectItem key={tipo.value} value={tipo.value}>
-                      {tipo.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filtroCondominio} onValueChange={setFiltroCondominio}>
-                <SelectTrigger className="w-[250px]">
-                  <SelectValue placeholder="Filtrar por condomínio" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os condomínios</SelectItem>
-                  {condominios?.map((cond) => (
-                    <SelectItem key={cond.id} value={cond.id}>
-                      {cond.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Carregando...
-            </div>
-          ) : (
-            <ComunicadosTable
-              comunicados={comunicadosFiltrados || []}
-              onEdit={handleEdit}
-            />
-          )}
-        </CardContent>
-      </Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="lista">Lista de Comunicados</TabsTrigger>
+          <TabsTrigger value="historico" disabled={!comunicadoHistorico}>
+            {comunicadoHistorico
+              ? `Envios: ${comunicadoHistorico.titulo.slice(0, 30)}${comunicadoHistorico.titulo.length > 30 ? "…" : ""}`
+              : "Histórico de Envios"}
+          </TabsTrigger>
+        </TabsList>
 
+        {/* Tab: Lista */}
+        <TabsContent value="lista" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <CardTitle>Lista de Comunicados</CardTitle>
+                <div className="flex flex-wrap gap-2">
+                  <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Filtrar por tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os tipos</SelectItem>
+                      {tipoOptions.map((tipo) => (
+                        <SelectItem key={tipo.value} value={tipo.value}>
+                          {tipo.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filtroCondominio} onValueChange={setFiltroCondominio}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Filtrar por condomínio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os condomínios</SelectItem>
+                      {condominios?.map((cond) => (
+                        <SelectItem key={cond.id} value={cond.id}>
+                          {cond.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+              ) : (
+                <ComunicadosTable
+                  comunicados={comunicadosFiltrados || []}
+                  onEdit={handleEdit}
+                  onEnviarMoradores={canCreate ? handleEnviarMoradores : undefined}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Histórico de Envios */}
+        <TabsContent value="historico" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">
+                    Histórico de Envios — {comunicadoHistorico?.titulo}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Entregas registradas via Mensageria para este comunicado
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setComunicadoHistorico(null);
+                    setActiveTab("lista");
+                  }}
+                >
+                  Voltar à lista
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <EntregasTable entregas={entregasFiltradas} isLoading={loadingHistorico} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog: Novo Comunicado */}
       <NovoComunicadoForm
         open={showForm}
         onOpenChange={handleCloseForm}
         comunicadoEdit={comunicadoEdit}
+      />
+
+      {/* Dialog: Disparar Mensagem */}
+      <DispararMensagemDialog
+        open={dispararOpen}
+        onOpenChange={(open) => {
+          setDispararOpen(open);
+          if (!open) setComunicadoParaEnvio(null);
+        }}
+        comunicado_id={comunicadoParaEnvio?.id}
+        comunicado_titulo={comunicadoParaEnvio?.titulo}
       />
     </div>
   );

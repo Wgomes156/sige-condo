@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Edit, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageSquare } from "lucide-react";
+import { Edit, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageSquare, Send } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -28,6 +28,7 @@ import {
 interface ComunicadosTableProps {
   comunicados: Comunicado[];
   onEdit: (comunicado: Comunicado) => void;
+  onEnviarMoradores?: (comunicado: Comunicado) => void;
 }
 
 const tipoBadgeVariant: Record<Comunicado["tipo"], "default" | "destructive" | "secondary" | "outline"> = {
@@ -48,7 +49,7 @@ const tipoLabels: Record<Comunicado["tipo"], string> = {
 
 const ITEMS_PER_PAGE = 10;
 
-export function ComunicadosTable({ comunicados, onEdit }: ComunicadosTableProps) {
+export function ComunicadosTable({ comunicados, onEdit, onEnviarMoradores }: ComunicadosTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const updateComunicado = useUpdateComunicado();
   const deleteComunicado = useDeleteComunicado();
@@ -138,6 +139,17 @@ export function ComunicadosTable({ comunicados, onEdit }: ComunicadosTableProps)
                         <Eye className="h-4 w-4" />
                       )}
                     </Button>
+                    {comunicado.ativo && onEnviarMoradores && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEnviarMoradores(comunicado)}
+                        title="Enviar para moradores (Mensageria)"
+                        className="text-primary hover:text-primary hover:bg-primary/10"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"

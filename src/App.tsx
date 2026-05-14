@@ -31,6 +31,7 @@ import Servicos from "./pages/Servicos";
 import Propostas from "./pages/Propostas";
 import Acordos from "./pages/Acordos";
 import Reservas from "./pages/Reservas";
+import Mensageria from "./pages/Mensageria";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -61,7 +62,7 @@ const App = () => (
               <Route
                 path="/*"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "gerente", "operador"]}>
+                  <ProtectedRoute allowedRoles={["admin", "sindico", "gerente", "operador"]}>
                     <MainLayout>
                       <Routes>
                         <Route path="/" element={<Dashboard />} />
@@ -79,6 +80,7 @@ const App = () => (
                         <Route path="/condominios" element={<Condominios />} />
                         <Route path="/unidades" element={<Unidades />} />
                         <Route path="/comunicados" element={<Comunicados />} />
+                        <Route path="/mensageria" element={<Mensageria />} />
                         <Route path="/financeiro" element={<Financeiro />} />
                         <Route path="/boletos" element={<Boletos />} />
                         <Route path="/boletos/recorrentes" element={<BoletosRecorrentes />} />

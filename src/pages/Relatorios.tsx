@@ -85,9 +85,10 @@ export default function Relatorios() {
         return { dataInicio: startOfWeek(now, { locale: ptBR }), dataFim: endOfWeek(now, { locale: ptBR }) };
       case "month":
         return { dataInicio: startOfMonth(now), dataFim: endOfMonth(now) };
-      case "last-month":
+      case "last-month": {
         const lastMonth = subMonths(now, 1);
         return { dataInicio: startOfMonth(lastMonth), dataFim: endOfMonth(lastMonth) };
+      }
       case "quarter":
         return { dataInicio: subMonths(now, 3), dataFim: now };
       case "custom":

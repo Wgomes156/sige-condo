@@ -2,7 +2,7 @@
 
 Sistema completo para administradoras de condomínios, desenvolvido com React, TypeScript, Vite e Supabase.
 
-> **Última atualização:** 11/05/2026 - Correção no fluxo de salvamento de atendimentos.
+> **Última atualização:** 14/05/2026 - Implantação do módulo de Mensageria multicanal (E-mail, WhatsApp e In-App).
 
 ## Tecnologias
 
@@ -35,6 +35,7 @@ Sistema completo para administradoras de condomínios, desenvolvido com React, T
 | Reservas | Reserva de áreas comuns |
 | Relatórios | Relatórios gerenciais e de inadimplência |
 | Comunicados | Envio de comunicados aos moradores |
+| **Mensageria** | **Central de disparo e rastreamento de mensagens multicanal (E-mail, WhatsApp, In-App)** |
 | Portal do Morador | Acesso simplificado para moradores |
 | Usuários | Gestão de usuários com Controle de Acesso Baseado em Papel (RBAC) |
 | Auditoria | Log de auditoria de ações |
@@ -206,6 +207,102 @@ No Supabase Dashboard → SQL Editor, cole e execute o conteúdo do arquivo acim
 ```bash
 supabase db push
 ```
+
+---
+
+## Mensageria — Comunicação Multicanal (Mai/2026)
+
+O módulo de **Mensageria** centraliza o disparo e rastreamento de todas as comunicações com moradores em uma única plataforma. A equipe administrativa pode enviar mensagens individuais ou em massa por três canais distintos, com acompanhamento em tempo real de cada entrega.
+
+### Como acessar
+- **Menu Lateral**: Clique em **"Mensageria"** (ícone de balão de mensagem), visível para Admin, Síndico, Gerente e Operador.
+- **Sino de notificações**: No cabeçalho do sistema, o ícone de **sino** exibe as notificações In-App recebidas (disponível para todos os perfis logados).
+
+### Canais suportados
+
+| Canal | Provedor | Configuração necessária |
+|-------|----------|------------------------|
+| **E-mail** | Resend | API Key + e-mail remetente |
+| **WhatsApp** | Evolution API / Z-API | URL da API, Token e Instance Name |
+| **In-App** | Nativo (Supabase) | Nenhuma — ativo por padrão |
+
+### Funcionalidades
+
+#### Disparar Mensagem
+- Acesse **Mensageria → "Nova Mensagem"**.
+- Escolha o escopo: **Todos os moradores** ou **Por condomínio**.
+- Selecione um ou mais canais de envio (E-mail, WhatsApp, In-App).
+- Preencha o assunto (até 255 caracteres) e a mensagem (até 1.000 caracteres).
+- Clique em **Enviar** — as entregas são enfileiradas instantaneamente na tabela `mensageria_entregas`.
+
+#### Histórico de Entregas
+- Tabela completa com filtros por **Condomínio**, **Status** e **Canal**.
+- Status de cada entrega: `Pendente`, `Enviando`, `Enviado`, `Falhou`, `Lido`.
+- Botão **Ver Logs** abre o histórico de tentativas de cada mensagem com erros detalhados.
+- Botão **Reenviar** disponível para entregas com status `Falhou`.
+- Auto-atualização das estatísticas a cada 30 segundos.
+
+#### Notificações In-App (Sino)
+- Badge no cabeçalho indica quantas mensagens não foram lidas.
+- Popover exibe as últimas 50 mensagens recebidas.
+- Botão **Lida** marca individualmente via Edge Function.
+
+#### Estatísticas no Topo da Página
+- **Total Enviado**, **Taxa de Entrega (%)**, **Falhas** e **Lidas**.
+
+#### Configuração de Canais (Admin/Síndico/Gerente)
+- Aba **"Configuração"** (visível apenas para Admin, Síndico e Gerente).
+- Configure E-mail, WhatsApp e In-App por condomínio individualmente.
+- Chaves de API protegidas com máscara (`••••`) e botão revelar.
+
+### Notificações Automáticas por Eventos
+
+O serviço `mensageriaEventos.ts` dispara notificações automáticas quando eventos ocorrem no sistema:
+
+| Evento | Descrição |
+|--------|-----------|
+| `encomenda_chegou` | Avisa o morador que há uma encomenda na portaria |
+| `boleto_vencendo` | Lembrete de boleto a vencer (D-1, D-3, D-7) |
+| `os_atualizada` | Notifica o solicitante sobre mudança de status de uma OS |
+
+O sistema verifica automaticamente quais canais estão ativos no condomínio (tabela `mensageria_config`) e usa **In-App como fallback** se nenhum canal estiver configurado.
+
+### Edge Functions utilizadas
+
+| Função | Descrição |
+|--------|-----------|
+| `processar-fila-mensageria` | Processa a fila de entregas pendentes e realiza os envios |
+| `marcar-mensagem-lida` | Marca uma entrega In-App como lida para o usuário logado |
+| `enviar-mensagem` | Reenvia uma entrega específica que falhou |
+
+### Banco de Dados (tabelas criadas)
+
+| Tabela | Descrição |
+|--------|-----------|
+| `mensageria_config` | Configurações de canais por condomínio |
+| `mensageria_entregas` | Registro de cada mensagem enfileirada e seu status |
+| `mensageria_logs` | Histórico de tentativas de envio com erros técnicos |
+| `morador_preferencias_notificacao` | Preferências de recebimento por morador |
+
+### Migration necessária
+
+Ao implantar esta versão, execute a migration no Supabase:
+
+```
+supabase/migrations/20260514120000_sistema_mensageria.sql
+```
+
+No Supabase Dashboard → SQL Editor, cole e execute o conteúdo do arquivo acima, ou rode via CLI:
+
+```bash
+supabase db push
+```
+
+> [!IMPORTANT]
+> A migration cria as 4 tabelas acima, habilita RLS e define as políticas de acesso. **Sem ela, o módulo de Mensageria não funcionará.**
+
+> [!NOTE]
+> O canal **In-App** não requer nenhuma configuração adicional e já está ativo por padrão para todos os condomínios. Os canais E-mail e WhatsApp requerem que o admin configure as chaves de API na aba "Configuração" do módulo de Mensageria.
 
 ---
 

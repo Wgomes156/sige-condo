@@ -4,7 +4,7 @@
 // to force clients to download the latest files.
 // =============================================
 
-const CACHE_VERSION = 'condoplus-v5';
+const CACHE_VERSION = 'condoplus-v6';
 const CACHE_NAME = CACHE_VERSION;
 
 // Core app shell files to cache on install
