@@ -9,30 +9,28 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout do codigo
         uses: actions/checkout@v4
-
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
-
       - name: Instalar dependencias
         run: npm ci --legacy-peer-deps
-
       - name: Build do projeto
         run: npm run build
-
       - name: Deploy via FTP para Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          port: 21
-          local-dir: ./dist/
+          protocol: ftps
           server-dir: /public_html/
-          dangerous-clean-slate: false
+          timeout: 60000
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
