@@ -3,7 +3,7 @@ name: Deploy condoplus.solutions
 on:
   push:
     branches:
-      - principal
+      - main
   workflow_dispatch:
 
 jobs:
