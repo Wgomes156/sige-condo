@@ -2,7 +2,7 @@
 
 Sistema completo para administradoras de condomínios, desenvolvido com React, TypeScript, Vite e Supabase.
 
-> **Última atualização:** 14/05/2026 - Implantação do módulo de Mensageria multicanal (E-mail, WhatsApp e In-App).
+> **Última atualização:** 01/06/2026 - Implementação do Cadastro de Fornecedores com controle de Tipos de Serviço integrado ao módulo de Demandas.
 
 ## Tecnologias
 
@@ -28,7 +28,8 @@ Sistema completo para administradoras de condomínios, desenvolvido com React, T
 | Contas Bancárias | Gestão de contas bancárias com suporte a Chave Pix |
 | Ordens de Serviço | Controle de manutenções |
 | Ocorrências | Registro de ocorrências de condomínio |
-| Demandas | Gestão de demandas internas |
+| Demandas | Gestão de demandas internas e manutenções preventivas |
+| Fornecedores | Cadastro centralizado de fornecedores com múltiplos tipos de serviços e dados bancários |
 | Serviços | Cadastro de serviços |
 | Propostas | Gestão de propostas comerciais |
 | Acordos | Controle de acordos de inadimplência |
@@ -303,6 +304,24 @@ supabase db push
 
 > [!NOTE]
 > O canal **In-App** não requer nenhuma configuração adicional e já está ativo por padrão para todos os condomínios. Os canais E-mail e WhatsApp requerem que o admin configure as chaves de API na aba "Configuração" do módulo de Mensageria.
+
+---
+
+## Cadastro de Fornecedores (Jun/2026)
+
+O módulo de Demandas agora conta com um **Cadastro Centralizado de Fornecedores**, permitindo organizar a rede de prestadores de serviço da administradora.
+
+### Funcionalidades
+- **Autonumeração**: Geração automática de número identificador (Nº 0001, 0002, etc.).
+- **Tipos de Serviço**: Múltipla seleção das especialidades do fornecedor (Ex: Elétrica, Hidráulica, Pintura, Motoboy). O sistema exibe badges resumidas na listagem.
+- **Dados Completos**: Armazenamento seguro de CNPJ/CPF, Telefone, Endereço, E-mail, Dados Bancários/Chave Pix e Observações.
+- **Acesso Ágil**: Acesse pelo botão "Fornecedores" na página de Demandas, ou adicione um fornecedor instantaneamente clicando no botão `+` durante a criação de uma Nova Demanda.
+
+### Migration necessária
+Para o correto funcionamento, é indispensável rodar a seguinte migration no Supabase:
+```
+supabase/migrations/20260601000000_add_fornecedores_fields.sql
+```
 
 ---
 
