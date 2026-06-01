@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, FileDown, FileSpreadsheet } from "lucide-react";
+import { Plus, FileDown, FileSpreadsheet, Tags } from "lucide-react";
 import { useServicos, Servico } from "@/hooks/useServicos";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +12,7 @@ import { ServicosTable } from "@/components/servicos/ServicosTable";
 import { ServicoFormDialog } from "@/components/servicos/ServicoFormDialog";
 import { ExcluirServicoDialog } from "@/components/servicos/ExcluirServicoDialog";
 import { HistoricoServicoDialog } from "@/components/servicos/HistoricoServicoDialog";
+import { GerenciarCategoriasDialogServicos } from "@/components/servicos/GerenciarCategoriasDialog";
 import { exportarServicosPDF, exportarServicosCSV } from "@/lib/servicosExportUtils";
 import {
   DropdownMenu,
@@ -44,6 +45,7 @@ export default function Servicos() {
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
+  const [gerenciarCategoriasOpen, setGerenciarCategoriasOpen] = useState(false);
   const [servicoSelecionado, setServicoSelecionado] = useState<Servico | null>(null);
 
   // Handlers
@@ -126,6 +128,10 @@ export default function Servicos() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setGerenciarCategoriasOpen(true)} className="gap-2">
+              <Tags className="h-4 w-4" />
+              Categorias
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -204,6 +210,11 @@ export default function Servicos() {
         onOpenChange={setHistoricoDialogOpen}
         servico={servicoSelecionado}
         buscarHistorico={buscarHistorico}
+      />
+
+      <GerenciarCategoriasDialogServicos
+        open={gerenciarCategoriasOpen}
+        onOpenChange={setGerenciarCategoriasOpen}
       />
     </>
   );

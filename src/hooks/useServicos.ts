@@ -215,6 +215,63 @@ export function useServicos() {
     },
   });
 
+  // Atualizar categoria
+  const atualizarCategoria = useMutation({
+    mutationFn: async ({ id, ...categoria }: Partial<CategoriaServico> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("categorias_servico")
+        .update({ ...categoria, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categorias-servico"] });
+      queryClient.invalidateQueries({ queryKey: ["servicos"] });
+      toast({
+        title: "Categoria atualizada",
+        description: "As alterações foram salvas com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar categoria",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Excluir categoria
+  const excluirCategoria = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("categorias_servico")
+        .update({ ativo: false })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categorias-servico"] });
+      queryClient.invalidateQueries({ queryKey: ["servicos"] });
+      toast({
+        title: "Categoria desativada",
+        description: "A categoria foi removida com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir categoria",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Buscar histórico de um serviço
   const buscarHistorico = async (servicoId: string) => {
     const { data, error } = await supabase
@@ -255,6 +312,8 @@ export function useServicos() {
     atualizarServico,
     excluirServico,
     criarCategoria,
+    atualizarCategoria,
+    excluirCategoria,
     buscarHistorico,
   };
 }

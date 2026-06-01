@@ -32,6 +32,7 @@ export interface TemplateDemanda {
 
 export interface Fornecedor {
   id: string;
+  numero_fornecedor?: number;
   nome: string;
   cnpj: string | null;
   telefone: string | null;
@@ -41,6 +42,8 @@ export interface Fornecedor {
   uf: string | null;
   contato_nome: string | null;
   observacoes: string | null;
+  dados_bancarios: string | null;
+  tipos_servico: string[];
   avaliacao: number;
   ativo: boolean;
 }
@@ -121,6 +124,72 @@ export function useCategoriasDemanda() {
   });
 }
 
+export function useCreateCategoriaDemanda() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (categoria: Omit<CategoriaDemanda, "id">) => {
+      const { data, error } = await supabase
+        .from("categorias_demanda")
+        .insert(categoria)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as CategoriaDemanda;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categorias-demanda"] });
+      toast.success("Categoria criada com sucesso!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao criar categoria");
+    },
+  });
+}
+
+export function useUpdateCategoriaDemanda() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...categoria }: Partial<CategoriaDemanda> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("categorias_demanda")
+        .update(categoria)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as CategoriaDemanda;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categorias-demanda"] });
+      toast.success("Categoria atualizada com sucesso!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao atualizar categoria");
+    },
+  });
+}
+
+export function useDeleteCategoriaDemanda() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("categorias_demanda")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categorias-demanda"] });
+      queryClient.invalidateQueries({ queryKey: ["demandas-condominio"] });
+      toast.success("Categoria excluída com sucesso!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao excluir categoria");
+    },
+  });
+}
+
 // Templates
 export function useTemplatesDemanda() {
   return useQuery({
@@ -156,7 +225,7 @@ export function useFornecedores() {
 export function useCreateFornecedor() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (fornecedor: Omit<Fornecedor, "id" | "ativo" | "avaliacao">) => {
+    mutationFn: async (fornecedor: Omit<Fornecedor, "id" | "ativo" | "avaliacao" | "numero_fornecedor">) => {
       const { data, error } = await supabase
         .from("fornecedores")
         .insert(fornecedor)

@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useCategoriasDemanda, useFornecedores, useCreateDemanda } from "@/hooks/useDemandas";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X, PlusCircle } from "lucide-react";
+import { GerenciarFornecedoresDialog } from "./GerenciarFornecedoresDialog";
 
 interface NovaDemandaDialogProps {
   open: boolean;
@@ -38,6 +39,7 @@ export function NovaDemandaDialog({ open, onOpenChange, condominioId }: NovaDema
   });
 
   const [novoDocumento, setNovoDocumento] = useState("");
+  const [novoFornecedorOpen, setNovoFornecedorOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,18 +167,29 @@ export function NovaDemandaDialog({ open, onOpenChange, condominioId }: NovaDema
 
               <div className="space-y-2">
                 <Label htmlFor="fornecedor">Fornecedor Padrão</Label>
-                <Select value={formData.fornecedor_id} onValueChange={(v) => setFormData({ ...formData, fornecedor_id: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fornecedores.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={formData.fornecedor_id} onValueChange={(v) => setFormData({ ...formData, fornecedor_id: v })}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fornecedores.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNovoFornecedorOpen(true)}
+                    title="Adicionar Novo Fornecedor"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -346,6 +359,12 @@ export function NovaDemandaDialog({ open, onOpenChange, condominioId }: NovaDema
           </div>
         </form>
       </DialogContent>
+
+      {/* Dialog aninhado para criar fornecedor na hora */}
+      <GerenciarFornecedoresDialog 
+        open={novoFornecedorOpen} 
+        onOpenChange={setNovoFornecedorOpen} 
+      />
     </Dialog>
   );
 }
