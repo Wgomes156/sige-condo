@@ -607,3 +607,4 @@ Antes de cada atualização, confirme:
 - [ ] Todos os arquivos antigos deletados do `public_html` antes de extrair o novo ZIP
 - [ ] Após extrair, verificar que `assets/` é uma **pasta** (não arquivos com `\` no nome)
 - [ ] Testar em aba anônima após o deploy
+<!-- deploy trigger 01/06/2026 -->
