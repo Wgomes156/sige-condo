@@ -54,7 +54,7 @@ export function useAtendimentos(filters?: AtendimentoFilters) {
       let query = supabase
         .from("atendimentos")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("updated_at", { ascending: false });
 
       // Aplicar filtros
       if (filters?.busca) {
