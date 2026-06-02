@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useCategoriasDemanda, useFornecedores, useCreateDemanda } from "@/hooks/useDemandas";
+import { useCategoriasDemanda, useFornecedores, useCreateDemanda, useUpdateDemanda, DemandaCondominio } from "@/hooks/useDemandas";
 import { Loader2, Plus, X, PlusCircle } from "lucide-react";
 import { GerenciarFornecedoresDialog } from "./GerenciarFornecedoresDialog";
 
@@ -14,14 +14,17 @@ interface NovaDemandaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   condominioId: string;
+  demandaParaEditar?: DemandaCondominio | null;
 }
 
-export function NovaDemandaDialog({ open, onOpenChange, condominioId }: NovaDemandaDialogProps) {
+export function NovaDemandaDialog({ open, onOpenChange, condominioId, demandaParaEditar }: NovaDemandaDialogProps) {
   const { data: categorias = [] } = useCategoriasDemanda();
   const { data: fornecedores = [] } = useFornecedores();
   const createDemanda = useCreateDemanda();
+  const updateDemanda = useUpdateDemanda();
+  const isEditing = !!demandaParaEditar;
 
-  const [formData, setFormData] = useState({
+  const defaultForm = {
     nome: "",
     descricao: "",
     categoria_id: "",
@@ -36,58 +39,90 @@ export function NovaDemandaDialog({ open, onOpenChange, condominioId }: NovaDema
     fornecedor_id: "",
     proxima_execucao: "",
     observacoes: "",
-  });
+  };
 
+  const [formData, setFormData] = useState(defaultForm);
   const [novoDocumento, setNovoDocumento] = useState("");
   const [novoFornecedorOpen, setNovoFornecedorOpen] = useState(false);
 
+  useEffect(() => {
+    if (demandaParaEditar) {
+      setFormData({
+        nome: demandaParaEditar.nome,
+        descricao: demandaParaEditar.descricao || "",
+        categoria_id: demandaParaEditar.categoria_id || "",
+        periodicidade: demandaParaEditar.periodicidade,
+        periodicidade_meses: demandaParaEditar.periodicidade_meses || 12,
+        obrigatorio: demandaParaEditar.obrigatorio,
+        base_legal: demandaParaEditar.base_legal || "",
+        documentos_necessarios: demandaParaEditar.documentos_necessarios || [],
+        alertar_antecedencia_dias: demandaParaEditar.alertar_antecedencia_dias,
+        permite_prorrogacao: demandaParaEditar.permite_prorrogacao,
+        custo_estimado: demandaParaEditar.custo_estimado,
+        fornecedor_id: demandaParaEditar.fornecedor_id || "",
+        proxima_execucao: demandaParaEditar.proxima_execucao
+          ? demandaParaEditar.proxima_execucao.split("T")[0]
+          : "",
+        observacoes: demandaParaEditar.observacoes || "",
+      });
+    } else {
+      resetForm();
+    }
+  }, [demandaParaEditar, open]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    await createDemanda.mutateAsync({
-      condominio_id: condominioId,
-      template_id: null,
-      categoria_id: formData.categoria_id || null,
-      nome: formData.nome,
-      descricao: formData.descricao || null,
-      periodicidade: formData.periodicidade,
-      periodicidade_meses: formData.periodicidade === "sob_demanda" ? null : formData.periodicidade_meses,
-      obrigatorio: formData.obrigatorio,
-      base_legal: formData.base_legal || null,
-      documentos_necessarios: formData.documentos_necessarios,
-      alertar_antecedencia_dias: formData.alertar_antecedencia_dias,
-      permite_prorrogacao: formData.permite_prorrogacao,
-      custo_estimado: formData.custo_estimado,
-      fornecedor_id: formData.fornecedor_id || null,
-      ultima_execucao: null,
-      proxima_execucao: formData.proxima_execucao || null,
-      status: formData.periodicidade === "sob_demanda" ? "sob_demanda" : "em_dia",
-      ativo: true,
-      observacoes: formData.observacoes || null,
-      criado_por: null,
-    });
+
+    if (isEditing) {
+      await updateDemanda.mutateAsync({
+        id: demandaParaEditar.id,
+        categoria_id: formData.categoria_id || null,
+        nome: formData.nome,
+        descricao: formData.descricao || null,
+        periodicidade: formData.periodicidade,
+        periodicidade_meses: formData.periodicidade === "sob_demanda" ? null : formData.periodicidade_meses,
+        obrigatorio: formData.obrigatorio,
+        base_legal: formData.base_legal || null,
+        documentos_necessarios: formData.documentos_necessarios,
+        alertar_antecedencia_dias: formData.alertar_antecedencia_dias,
+        permite_prorrogacao: formData.permite_prorrogacao,
+        custo_estimado: formData.custo_estimado,
+        fornecedor_id: formData.fornecedor_id || null,
+        proxima_execucao: formData.proxima_execucao || null,
+        status: formData.periodicidade === "sob_demanda" ? "sob_demanda" : demandaParaEditar.status,
+        observacoes: formData.observacoes || null,
+      });
+    } else {
+      await createDemanda.mutateAsync({
+        condominio_id: condominioId,
+        template_id: null,
+        categoria_id: formData.categoria_id || null,
+        nome: formData.nome,
+        descricao: formData.descricao || null,
+        periodicidade: formData.periodicidade,
+        periodicidade_meses: formData.periodicidade === "sob_demanda" ? null : formData.periodicidade_meses,
+        obrigatorio: formData.obrigatorio,
+        base_legal: formData.base_legal || null,
+        documentos_necessarios: formData.documentos_necessarios,
+        alertar_antecedencia_dias: formData.alertar_antecedencia_dias,
+        permite_prorrogacao: formData.permite_prorrogacao,
+        custo_estimado: formData.custo_estimado,
+        fornecedor_id: formData.fornecedor_id || null,
+        ultima_execucao: null,
+        proxima_execucao: formData.proxima_execucao || null,
+        status: formData.periodicidade === "sob_demanda" ? "sob_demanda" : "em_dia",
+        ativo: true,
+        observacoes: formData.observacoes || null,
+        criado_por: null,
+      });
+    }
 
     onOpenChange(false);
     resetForm();
   };
 
   const resetForm = () => {
-    setFormData({
-      nome: "",
-      descricao: "",
-      categoria_id: "",
-      periodicidade: "anual",
-      periodicidade_meses: 12,
-      obrigatorio: false,
-      base_legal: "",
-      documentos_necessarios: [],
-      alertar_antecedencia_dias: 30,
-      permite_prorrogacao: true,
-      custo_estimado: 0,
-      fornecedor_id: "",
-      proxima_execucao: "",
-      observacoes: "",
-    });
+    setFormData(defaultForm);
     setNovoDocumento("");
   };
 
@@ -129,7 +164,7 @@ export function NovaDemandaDialog({ open, onOpenChange, condominioId }: NovaDema
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Demanda Personalizada</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Demanda" : "Nova Demanda Personalizada"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -352,9 +387,9 @@ export function NovaDemandaDialog({ open, onOpenChange, condominioId }: NovaDema
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={createDemanda.isPending}>
-              {createDemanda.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Criar Demanda
+            <Button type="submit" disabled={createDemanda.isPending || updateDemanda.isPending}>
+              {(createDemanda.isPending || updateDemanda.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isEditing ? "Salvar Alterações" : "Criar Demanda"}
             </Button>
           </div>
         </form>

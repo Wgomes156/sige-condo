@@ -2,8 +2,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, CheckCircle, Calendar, MoreHorizontal } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Eye, CheckCircle, Calendar, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DemandaCondominio, getStatusInfo, getPeriodicidadeLabel, calcularDiasRestantes } from "@/hooks/useDemandas";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -13,9 +13,11 @@ interface DemandasTableProps {
   isLoading: boolean;
   onVerDetalhes: (id: string) => void;
   onRegistrarExecucao: (id: string) => void;
+  onEditar: (demanda: DemandaCondominio) => void;
+  onExcluir: (demanda: DemandaCondominio) => void;
 }
 
-export function DemandasTable({ demandas, isLoading, onVerDetalhes, onRegistrarExecucao }: DemandasTableProps) {
+export function DemandasTable({ demandas, isLoading, onVerDetalhes, onRegistrarExecucao, onEditar, onExcluir }: DemandasTableProps) {
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -137,6 +139,18 @@ export function DemandasTable({ demandas, isLoading, onVerDetalhes, onRegistrarE
                             <DropdownMenuItem onClick={() => onVerDetalhes(demanda.id)}>
                               <Calendar className="h-4 w-4 mr-2" />
                               Reagendar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => onEditar(demanda)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => onExcluir(demanda)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

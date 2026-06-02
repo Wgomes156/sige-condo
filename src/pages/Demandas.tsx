@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useCondominios } from "@/hooks/useCondominios";
-import { useDemandasCondominio, useDemandasDashboard, useCategoriasDemanda } from "@/hooks/useDemandas";
+import { useDemandasCondominio, useDemandasDashboard, useCategoriasDemanda, useDeleteDemanda, DemandaCondominio } from "@/hooks/useDemandas";
 import { DashboardDemandasCards } from "@/components/demandas/DashboardDemandasCards";
 import { FiltrosDemandas } from "@/components/demandas/FiltrosDemandas";
 import { DemandasTable } from "@/components/demandas/DemandasTable";
@@ -14,6 +14,7 @@ import { CalendarioDemandas } from "@/components/demandas/CalendarioDemandas";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Download, FileDown, Tags, CalendarDays, Table2, Truck } from "lucide-react";
 
 export default function Demandas() {
@@ -30,6 +31,27 @@ export default function Demandas() {
   const [gerenciarFornecedoresOpen, setGerenciarFornecedoresOpen] = useState(false);
   const [demandaDetalhesId, setDemandaDetalhesId] = useState<string | null>(null);
   const [registrarExecucaoId, setRegistrarExecucaoId] = useState<string | null>(null);
+  const [demandaParaEditar, setDemandaParaEditar] = useState<DemandaCondominio | null>(null);
+  const [demandaParaExcluir, setDemandaParaExcluir] = useState<DemandaCondominio | null>(null);
+
+  const deleteDemanda = useDeleteDemanda();
+
+  const handleEditar = (demanda: DemandaCondominio) => {
+    setDemandaDetalhesId(null);
+    setDemandaParaEditar(demanda);
+    setNovaDemandaOpen(true);
+  };
+
+  const handleEditarPorId = (id: string) => {
+    const demanda = demandas.find((d) => d.id === id);
+    if (demanda) handleEditar(demanda);
+  };
+
+  const handleConfirmarExclusao = async () => {
+    if (!demandaParaExcluir) return;
+    await deleteDemanda.mutateAsync(demandaParaExcluir.id);
+    setDemandaParaExcluir(null);
+  };
 
   const { data: demandas = [], isLoading } = useDemandasCondominio(selectedCondominio || null);
   const { data: stats } = useDemandasDashboard(selectedCondominio || null);
@@ -136,6 +158,8 @@ export default function Demandas() {
                   isLoading={isLoading}
                   onVerDetalhes={setDemandaDetalhesId}
                   onRegistrarExecucao={setRegistrarExecucaoId}
+                  onEditar={handleEditar}
+                  onExcluir={setDemandaParaExcluir}
                 />
               </TabsContent>
 
@@ -161,8 +185,12 @@ export default function Demandas() {
       {/* Dialogs */}
       <NovaDemandaDialog
         open={novaDemandaOpen}
-        onOpenChange={setNovaDemandaOpen}
+        onOpenChange={(open) => {
+          setNovaDemandaOpen(open);
+          if (!open) setDemandaParaEditar(null);
+        }}
         condominioId={selectedCondominio}
+        demandaParaEditar={demandaParaEditar}
       />
 
       <ImportarTemplatesDialog
@@ -178,6 +206,10 @@ export default function Demandas() {
         onRegistrarExecucao={(id) => {
           setDemandaDetalhesId(null);
           setRegistrarExecucaoId(id);
+        }}
+        onEditar={(id) => {
+          setDemandaDetalhesId(null);
+          handleEditarPorId(id);
         }}
       />
 
@@ -195,6 +227,27 @@ export default function Demandas() {
         open={gerenciarFornecedoresOpen}
         onOpenChange={setGerenciarFornecedoresOpen}
       />
+
+      <AlertDialog open={!!demandaParaExcluir} onOpenChange={(open) => !open && setDemandaParaExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Demanda</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a demanda{" "}
+              <strong>"{demandaParaExcluir?.nome}"</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmarExclusao}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

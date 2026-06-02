@@ -13,9 +13,10 @@ interface DemandaDetalhesDialogProps {
   demandaId: string | null;
   onClose: () => void;
   onRegistrarExecucao: (id: string) => void;
+  onEditar: (id: string) => void;
 }
 
-export function DemandaDetalhesDialog({ demandaId, onClose, onRegistrarExecucao }: DemandaDetalhesDialogProps) {
+export function DemandaDetalhesDialog({ demandaId, onClose, onRegistrarExecucao, onEditar }: DemandaDetalhesDialogProps) {
   const { data: demanda, isLoading: loadingDemanda } = useDemandaDetalhes(demandaId);
   const { data: execucoes = [], isLoading: loadingExecucoes } = useExecucoesDemanda(demandaId);
 
@@ -224,7 +225,7 @@ export function DemandaDetalhesDialog({ demandaId, onClose, onRegistrarExecucao 
             Fechar
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => demanda && onEditar(demanda.id)}>
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </Button>
