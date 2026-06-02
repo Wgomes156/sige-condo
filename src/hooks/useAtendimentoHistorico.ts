@@ -67,12 +67,18 @@ export function useCreateAtendimentoHistorico() {
         throw error;
       }
 
+      await supabase
+        .from("atendimentos")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", novo.atendimento_id);
+
       console.log("[useCreateAtendimentoHistorico] Registro criado com sucesso:", data);
       return data;
     },
     onSuccess: (data) => {
       console.log("[useCreateAtendimentoHistorico] onSuccess - invalidando cache para:", data.atendimento_id);
       queryClient.invalidateQueries({ queryKey: ["atendimento_historico", data.atendimento_id] });
+      queryClient.invalidateQueries({ queryKey: ["atendimentos"] });
       toast.success("Registro de histórico adicionado!");
     },
     onError: (error) => {
@@ -134,11 +140,18 @@ export function useDeleteAtendimentoHistorico() {
         .eq("id", item.id);
 
       if (error) throw error;
+
+      await supabase
+        .from("atendimentos")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", item.atendimento_id);
+
       return item;
     },
     onSuccess: (item) => {
       queryClient.invalidateQueries({ queryKey: ["atendimento_historico", item.atendimento_id] });
       queryClient.invalidateQueries({ queryKey: ["anexos", "atendimento_historico"] });
+      queryClient.invalidateQueries({ queryKey: ["atendimentos"] });
       toast.success("Histórico e seus anexos excluídos!");
     },
     onError: (error) => {
