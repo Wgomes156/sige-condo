@@ -51,12 +51,8 @@ export function useAtendimentos(filters?: AtendimentoFilters) {
   return useQuery({
     queryKey: ["atendimentos", filters],
     queryFn: async () => {
-      let query = supabase
-        .from("atendimentos")
-        .select("*")
-        .order("updated_at", { ascending: false });
+      let query = supabase.from("atendimentos").select("*");
 
-      // Aplicar filtros
       if (filters?.busca) {
         const busca = `%${filters.busca}%`;
         query = query.or(
@@ -88,10 +84,29 @@ export function useAtendimentos(filters?: AtendimentoFilters) {
         query = query.lte("data", filters.dataFim);
       }
 
-      const { data, error } = await query;
+      const [{ data, error }, { data: historicos }] = await Promise.all([
+        query,
+        supabase
+          .from("atendimento_historico")
+          .select("atendimento_id, created_at")
+          .order("created_at", { ascending: false }),
+      ]);
 
       if (error) throw error;
-      return data as Atendimento[];
+
+      // COALESCE(MAX(historico.created_at), atendimento.created_at) DESC
+      const latestHistorico = new Map<string, string>();
+      for (const h of historicos ?? []) {
+        if (!latestHistorico.has(h.atendimento_id)) {
+          latestHistorico.set(h.atendimento_id, h.created_at);
+        }
+      }
+
+      return (data as Atendimento[]).sort((a, b) => {
+        const dateA = latestHistorico.get(a.id) ?? a.created_at;
+        const dateB = latestHistorico.get(b.id) ?? b.created_at;
+        return dateB.localeCompare(dateA);
+      });
     },
   });
 }
