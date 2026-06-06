@@ -43,6 +43,9 @@ export interface Fornecedor {
   contato_nome: string | null;
   observacoes: string | null;
   dados_bancarios: string | null;
+  agencia: string | null;
+  conta: string | null;
+  pix: string | null;
   tipos_servico: string[];
   avaliacao: number;
   ativo: boolean;

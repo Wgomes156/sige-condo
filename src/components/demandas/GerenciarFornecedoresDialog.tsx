@@ -63,7 +63,9 @@ interface FormState {
   telefone: string;
   endereco: string;
   email: string;
-  dados_bancarios: string;
+  agencia: string;
+  conta: string;
+  pix: string;
   tipos_servico: string[];
   observacoes: string;
 }
@@ -74,7 +76,9 @@ const FORM_INICIAL: FormState = {
   telefone: "",
   endereco: "",
   email: "",
-  dados_bancarios: "",
+  agencia: "",
+  conta: "",
+  pix: "",
   tipos_servico: [],
   observacoes: "",
 };
@@ -120,7 +124,9 @@ export function GerenciarFornecedoresDialog({ open, onOpenChange }: Props) {
       telefone: forn.telefone || "",
       endereco: forn.endereco || "",
       email: forn.email || "",
-      dados_bancarios: forn.dados_bancarios || "",
+      agencia: forn.agencia || "",
+      conta: forn.conta || "",
+      pix: forn.pix || "",
       tipos_servico: forn.tipos_servico || [],
       observacoes: forn.observacoes || "",
     });
@@ -277,13 +283,34 @@ export function GerenciarFornecedoresDialog({ open, onOpenChange }: Props) {
                     />
                   </div>
 
-                  <div className="space-y-1 md:col-span-2">
-                    <Label>Dados Bancários / PIX</Label>
-                    <Input
-                      placeholder="Chave PIX ou Banco/Ag/CC"
-                      value={form.dados_bancarios}
-                      onChange={(e) => setForm((f) => ({ ...f, dados_bancarios: e.target.value }))}
-                    />
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="font-semibold text-primary/80 mt-2 block">Dados Bancários</Label>
+                    <div className="grid gap-4 md:grid-cols-3 border rounded-md p-3 bg-background/50">
+                      <div className="space-y-1">
+                        <Label>Agência</Label>
+                        <Input
+                          placeholder="0000"
+                          value={form.agencia}
+                          onChange={(e) => setForm((f) => ({ ...f, agencia: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Conta</Label>
+                        <Input
+                          placeholder="00000-0"
+                          value={form.conta}
+                          onChange={(e) => setForm((f) => ({ ...f, conta: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>PIX</Label>
+                        <Input
+                          placeholder="Chave PIX"
+                          value={form.pix}
+                          onChange={(e) => setForm((f) => ({ ...f, pix: e.target.value }))}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-1 md:col-span-2">
