@@ -42,7 +42,6 @@ export interface Fornecedor {
   uf: string | null;
   contato_nome: string | null;
   observacoes: string | null;
-  dados_bancarios: string | null;
   agencia: string | null;
   conta: string | null;
   pix: string | null;
@@ -209,34 +208,6 @@ export function useTemplatesDemanda() {
   });
 }
 
-// Serializa agencia/conta/pix em dados_bancarios e remove as colunas virtuais antes de enviar ao banco
-function serializarDadosBancarios(fornecedor: Partial<Fornecedor>): Record<string, any> {
-  const { agencia, conta, pix, ...resto } = fornecedor as any;
-  const dadosBancarios: Record<string, string> = {};
-  if (agencia !== undefined) dadosBancarios.agencia = agencia;
-  if (conta !== undefined) dadosBancarios.conta = conta;
-  if (pix !== undefined) dadosBancarios.pix = pix;
-  return {
-    ...resto,
-    dados_bancarios: Object.keys(dadosBancarios).length
-      ? JSON.stringify(dadosBancarios)
-      : resto.dados_bancarios ?? null,
-  };
-}
-
-// Parseia dados_bancarios e expõe agencia/conta/pix como campos do objeto
-function parsearFornecedor(row: any): Fornecedor {
-  let agencia = null, conta = null, pix = null;
-  if (row.dados_bancarios) {
-    try {
-      const parsed = JSON.parse(row.dados_bancarios);
-      agencia = parsed.agencia ?? null;
-      conta = parsed.conta ?? null;
-      pix = parsed.pix ?? null;
-    } catch {}
-  }
-  return { ...row, agencia, conta, pix };
-}
 
 // Fornecedores
 export function useFornecedores() {
@@ -249,7 +220,7 @@ export function useFornecedores() {
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;
-      return (data as any[]).map(parsearFornecedor) as Fornecedor[];
+      return data as Fornecedor[];
     },
   });
 }
@@ -258,14 +229,13 @@ export function useCreateFornecedor() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (fornecedor: Omit<Fornecedor, "id" | "ativo" | "avaliacao" | "numero_fornecedor">) => {
-      const payload = serializarDadosBancarios(fornecedor);
       const { data, error } = await supabase
         .from("fornecedores")
-        .insert(payload)
+        .insert(fornecedor as any)
         .select()
         .single();
       if (error) throw error;
-      return parsearFornecedor(data);
+      return data as Fornecedor;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
@@ -281,15 +251,14 @@ export function useUpdateFornecedor() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...fornecedor }: Partial<Fornecedor> & { id: string }) => {
-      const payload = serializarDadosBancarios(fornecedor);
       const { data, error } = await supabase
         .from("fornecedores")
-        .update(payload)
+        .update(fornecedor as any)
         .eq("id", id)
         .select()
         .single();
       if (error) throw error;
-      return parsearFornecedor(data);
+      return data as Fornecedor;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fornecedores"] });

@@ -1741,57 +1741,63 @@ export type Database = {
       }
       fornecedores: {
         Row: {
+          agencia: string | null
           ativo: boolean | null
           avaliacao: number | null
           cidade: string | null
           cnpj: string | null
           contato_nome: string | null
+          conta: string | null
           created_at: string | null
-          dados_bancarios: string | null
           email: string | null
           endereco: string | null
           id: string
           nome: string
           numero_fornecedor: number | null
           observacoes: string | null
+          pix: string | null
           telefone: string | null
           tipos_servico: string[] | null
           uf: string | null
           updated_at: string | null
         }
         Insert: {
+          agencia?: string | null
           ativo?: boolean | null
           avaliacao?: number | null
           cidade?: string | null
           cnpj?: string | null
           contato_nome?: string | null
+          conta?: string | null
           created_at?: string | null
-          dados_bancarios?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
           nome: string
           numero_fornecedor?: number | null
           observacoes?: string | null
+          pix?: string | null
           telefone?: string | null
           tipos_servico?: string[] | null
           uf?: string | null
           updated_at?: string | null
         }
         Update: {
+          agencia?: string | null
           ativo?: boolean | null
           avaliacao?: number | null
           cidade?: string | null
           cnpj?: string | null
           contato_nome?: string | null
+          conta?: string | null
           created_at?: string | null
-          dados_bancarios?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
           nome?: string
           numero_fornecedor?: number | null
           observacoes?: string | null
+          pix?: string | null
           telefone?: string | null
           tipos_servico?: string[] | null
           uf?: string | null
