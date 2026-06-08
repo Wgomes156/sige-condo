@@ -2,7 +2,19 @@
 
 Sistema completo para administradoras de condomínios, desenvolvido com React, TypeScript, Vite e Supabase.
 
-> **Última atualização:** 01/06/2026 - Implementação do Cadastro de Fornecedores com controle de Tipos de Serviço integrado ao módulo de Demandas.
+> **Última atualização:** 08/06/2026 - Criação da conta Supabase (Wgomes156) e projeto sige_condo, migração dos dados de produção.
+
+## Infraestrutura Supabase
+
+| Item | Valor |
+|---|---|
+| Conta Supabase | **Wgomes156** |
+| Nome do projeto | **sige_condo** |
+| Project ID | `efmfyuewgtejsmwiusgn` |
+| URL do projeto | `https://efmfyuewgtejsmwiusgn.supabase.co` |
+| Criado em | 08/06/2026 |
+
+> As chaves de API (anon key e service role key) ficam no arquivo `.env` (não versionado).
 
 ## Tecnologias
 
