@@ -33,14 +33,23 @@ export function useAuth() {
         
         if (mounted) setProfile(profileData);
 
-        // Fetch role
-        const { data: roleData } = await supabase
+        // Fetch role — prioriza admin > sindico > gerente > operador > morador
+        const { data: rolesData } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", userId)
-          .maybeSingle();
-        
-        if (mounted) setUserRole(roleData?.role || "operador");
+          .eq("user_id", userId);
+
+        const rolePriority = ["admin", "sindico", "gerente", "operador", "morador"];
+        let resolvedRole: UserRole = "operador";
+        if (rolesData && rolesData.length > 0) {
+          for (const priority of rolePriority) {
+            if (rolesData.some((r) => r.role === priority)) {
+              resolvedRole = priority as UserRole;
+              break;
+            }
+          }
+        }
+        if (mounted) setUserRole(resolvedRole);
       } catch (error) {
         console.error("Error fetching user data:", error);
       }

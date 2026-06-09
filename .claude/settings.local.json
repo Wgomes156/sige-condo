@@ -31,7 +31,16 @@
       "Bash(Get-ChildItem -Path \"D:\\\\sige-condo\\\\src\" -Directory)",
       "Bash(Select-Object -ExpandProperty Name)",
       "Bash(npx vite *)",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(powershell -Command \"Compress-Archive -Path 'dist\\\\*' -DestinationPath 'dist.zip' -Force\")",
+      "Bash(git -C \"D:\\\\sige-condo\" status)",
+      "Bash(git -C \"D:\\\\sige-condo\" diff)",
+      "Bash(git -C \"D:\\\\sige-condo\" add src/hooks/useDemandas.ts src/integrations/supabase/types.ts)",
+      "Bash(git -C 'D:\\\\sige-condo' commit -m ' *)",
+      "Skill(run)",
+      "Bash(grep -Hm1 ^description: 'D:\\\\sige-condo/.claude/skills/*/SKILL.md')",
+      "Bash(git checkout *)",
+      "Bash(git restore *)"
     ]
   }
 }

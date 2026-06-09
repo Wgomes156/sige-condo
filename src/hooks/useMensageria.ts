@@ -171,7 +171,7 @@ export function useDispararMensagem() {
       // Buscar destinatários: unidades com morador cadastrado
       let unidadesQuery = (supabase as any)
         .from("unidades")
-        .select("id, morador_nome, morador_email, morador_telefone, morador_id")
+        .select("id, morador_nome, morador_email, morador_telefone")
         .eq("ativa", true)
         .not("morador_nome", "is", null);
 
@@ -202,7 +202,7 @@ export function useDispararMensagem() {
             condominio_id: condominioId,
             comunicado_id: input.comunicado_id || null,
             evento_tipo: "comunicado",
-            destinatario_id: unidade.morador_id || null,
+            destinatario_id: null,
             destinatario_nome: unidade.morador_nome,
             destinatario_email: unidade.morador_email || null,
             destinatario_telefone: unidade.morador_telefone || null,
