@@ -65,6 +65,7 @@ export function NovoUsuarioForm({
   onSubmit,
 }: NovoUsuarioFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [condominios, setCondominios] = useState<Condominio[]>([]);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [selectedCondominioAcesso, setSelectedCondominioAcesso] = useState<string>("todos");
@@ -106,6 +107,7 @@ export function NovoUsuarioForm({
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
+    setErrorMsg(null);
     try {
       const data: NovoUsuarioData = {
         nome: values.nome,
@@ -128,6 +130,8 @@ export function NovoUsuarioForm({
         setSelectedCondominioAcesso("todos");
         setSelectedUnidades([]);
         onOpenChange(false);
+      } else {
+        setErrorMsg(result.error || "Erro desconhecido ao criar usuário.");
       }
     } finally {
       setIsSubmitting(false);
@@ -281,6 +285,12 @@ export function NovoUsuarioForm({
                     </p>
                   )}
                 </ScrollArea>
+              </div>
+            )}
+
+            {errorMsg && (
+              <div className="p-3 bg-destructive/15 text-destructive text-sm rounded-md border border-destructive/20">
+                {errorMsg}
               </div>
             )}
 
