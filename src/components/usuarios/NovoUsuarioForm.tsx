@@ -67,7 +67,7 @@ export function NovoUsuarioForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [condominios, setCondominios] = useState<Condominio[]>([]);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
-  const [selectedCondominios, setSelectedCondominios] = useState<string[]>([]);
+  const [selectedCondominioAcesso, setSelectedCondominioAcesso] = useState<string>("todos");
   const [selectedUnidades, setSelectedUnidades] = useState<
     { unidade_id: string; tipo_morador: string }[]
   >([]);
@@ -112,7 +112,12 @@ export function NovoUsuarioForm({
         email: values.email,
         password: values.password,
         role: values.role,
-        condominios_ids: (selectedRole === "gerente" || selectedRole === "sindico") ? selectedCondominios : undefined,
+        condominios_ids:
+          selectedRole !== "admin"
+            ? selectedCondominioAcesso === "todos"
+              ? condominios.map((c) => c.id)
+              : [selectedCondominioAcesso]
+            : undefined,
         unidades_ids:
           selectedRole === "morador" ? selectedUnidades : undefined,
       };
@@ -120,7 +125,7 @@ export function NovoUsuarioForm({
       const result = await onSubmit(data);
       if (result.success) {
         form.reset();
-        setSelectedCondominios([]);
+        setSelectedCondominioAcesso("todos");
         setSelectedUnidades([]);
         onOpenChange(false);
       }
@@ -129,13 +134,6 @@ export function NovoUsuarioForm({
     }
   };
 
-  const toggleCondominio = (condId: string) => {
-    setSelectedCondominios((prev) =>
-      prev.includes(condId)
-        ? prev.filter((id) => id !== condId)
-        : [...prev, condId]
-    );
-  };
 
   const toggleUnidade = (unidadeId: string, tipoMorador: string = "proprietario") => {
     setSelectedUnidades((prev) => {
@@ -231,31 +229,25 @@ export function NovoUsuarioForm({
               )}
             />
 
-            {(selectedRole === "gerente" || selectedRole === "sindico") && (
+            {selectedRole !== "admin" && (
               <div className="space-y-2">
-                <FormLabel>Condomínios com acesso</FormLabel>
-                <ScrollArea className="h-[150px] border rounded-md p-2">
-                  {condominios.map((cond) => (
-                    <div key={cond.id} className="flex items-center space-x-2 py-1">
-                      <Checkbox
-                        id={cond.id}
-                        checked={selectedCondominios.includes(cond.id)}
-                        onCheckedChange={() => toggleCondominio(cond.id)}
-                      />
-                      <label
-                        htmlFor={cond.id}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
+                <FormLabel>Condomínio de Acesso</FormLabel>
+                <Select
+                  value={selectedCondominioAcesso}
+                  onValueChange={setSelectedCondominioAcesso}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o condomínio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os condomínios</SelectItem>
+                    {condominios.map((cond) => (
+                      <SelectItem key={cond.id} value={cond.id}>
                         {cond.nome}
-                      </label>
-                    </div>
-                  ))}
-                  {condominios.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      Nenhum condomínio disponível
-                    </p>
-                  )}
-                </ScrollArea>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -263,7 +255,9 @@ export function NovoUsuarioForm({
               <div className="space-y-2">
                 <FormLabel>Unidades com acesso</FormLabel>
                 <ScrollArea className="h-[150px] border rounded-md p-2">
-                  {unidades.map((unid) => {
+                  {unidades
+                    .filter((u) => selectedCondominioAcesso === "todos" || u.condominio_id === selectedCondominioAcesso)
+                    .map((unid) => {
                     const cond = condominios.find((c) => c.id === unid.condominio_id);
                     return (
                       <div key={unid.id} className="flex items-center space-x-2 py-1">
@@ -281,7 +275,7 @@ export function NovoUsuarioForm({
                       </div>
                     );
                   })}
-                  {unidades.length === 0 && (
+                  {unidades.filter((u) => selectedCondominioAcesso === "todos" || u.condominio_id === selectedCondominioAcesso).length === 0 && (
                     <p className="text-sm text-muted-foreground">
                       Nenhuma unidade disponível
                     </p>
