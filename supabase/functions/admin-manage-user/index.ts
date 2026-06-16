@@ -75,7 +75,7 @@ serve(async (req) => {
         // preserves the records while removing the broken reference.
         const nullifyOps = [
           supabaseAdmin.from("atendimentos").update({ operador_id: null }).eq("operador_id", user_id),
-          supabaseAdmin.from("atendimentos").update({ atribuido_a: null }).eq("atribuido_a", user_id),
+          supabaseAdmin.from("ordens_servico").update({ atribuido_a: null }).eq("atribuido_a", user_id),
           supabaseAdmin.from("atendimento_historico").update({ criado_por: null }).eq("criado_por", user_id),
           supabaseAdmin.from("anexos").update({ criado_por: null }).eq("criado_por", user_id),
           supabaseAdmin.from("unidades").update({ alterado_por: null }).eq("alterado_por", user_id),
