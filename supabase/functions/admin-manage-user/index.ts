@@ -69,19 +69,51 @@ serve(async (req) => {
     let auditDetails: Record<string, unknown> = {};
 
     switch (action) {
-      case "delete":
-        // Delete user from auth (cascades to profiles and related tables)
+      case "delete": {
+        // Delete related records from public tables before removing the auth user.
+        // Without this, FK constraints block auth.users deletion when CASCADE is not set.
+        const cleanupErrors: string[] = [];
+
+        const { error: condErr } = await supabaseAdmin
+          .from("user_condominio_access")
+          .delete()
+          .eq("user_id", user_id);
+        if (condErr) cleanupErrors.push(`user_condominio_access: ${condErr.message}`);
+
+        const { error: unidErr } = await supabaseAdmin
+          .from("user_unidade_access")
+          .delete()
+          .eq("user_id", user_id);
+        if (unidErr) cleanupErrors.push(`user_unidade_access: ${unidErr.message}`);
+
+        const { error: roleDelErr } = await supabaseAdmin
+          .from("user_roles")
+          .delete()
+          .eq("user_id", user_id);
+        if (roleDelErr) cleanupErrors.push(`user_roles: ${roleDelErr.message}`);
+
+        const { error: profileDelErr } = await supabaseAdmin
+          .from("profiles")
+          .delete()
+          .eq("user_id", user_id);
+        if (profileDelErr) cleanupErrors.push(`profiles: ${profileDelErr.message}`);
+
+        if (cleanupErrors.length > 0) {
+          console.error("Cleanup errors before auth deletion:", cleanupErrors);
+        }
+
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
         if (deleteError) throw deleteError;
+
         result = { message: "Usuário excluído com sucesso" };
         auditDetails = {
           deleted_user_email: targetUserData?.email,
           deleted_user_name: targetUserData?.nome,
         };
         break;
+      }
 
-      case "update":
-        // Update user metadata and profile
+      case "update": {
         if (email) {
           const { error: emailError } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
             email,
@@ -106,12 +138,13 @@ serve(async (req) => {
           new_email: email || targetUserData?.email,
         };
         break;
+      }
 
-      case "reset_password":
+      case "reset_password": {
         if (!password) {
           throw new Error("Password is required for reset_password action");
         }
-        
+
         const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
           password,
         });
@@ -122,6 +155,7 @@ serve(async (req) => {
           target_user_name: targetUserData?.nome,
         };
         break;
+      }
 
       default:
         throw new Error(`Unknown action: ${action}`);

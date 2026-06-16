@@ -1,4 +1,4 @@
-project_id = "vteuzzvwzunkflcfijdn"
+project_id = "efmfyuewgtejsmwiusgn"
 
 [functions.gerar-boletos-recorrentes]
 verify_jwt = true
