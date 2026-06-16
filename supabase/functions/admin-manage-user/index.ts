@@ -70,37 +70,41 @@ serve(async (req) => {
 
     switch (action) {
       case "delete": {
-        // Delete related records from public tables before removing the auth user.
-        // Without this, FK constraints block auth.users deletion when CASCADE is not set.
-        const cleanupErrors: string[] = [];
+        // SET NULL on all FK columns that reference auth.users without CASCADE.
+        // These columns track who created/approved/handled records — nullifying
+        // preserves the records while removing the broken reference.
+        const nullifyOps = [
+          supabaseAdmin.from("atendimentos").update({ operador_id: null }).eq("operador_id", user_id),
+          supabaseAdmin.from("atendimentos").update({ atribuido_a: null }).eq("atribuido_a", user_id),
+          supabaseAdmin.from("atendimento_historico").update({ criado_por: null }).eq("criado_por", user_id),
+          supabaseAdmin.from("anexos").update({ criado_por: null }).eq("criado_por", user_id),
+          supabaseAdmin.from("unidades").update({ alterado_por: null }).eq("alterado_por", user_id),
+          supabaseAdmin.from("documentos_unidade").update({ criado_por: null }).eq("criado_por", user_id),
+          supabaseAdmin.from("ocorrencias_unidade").update({ registrado_por: null }).eq("registrado_por", user_id),
+          supabaseAdmin.from("ocorrencias_condominio").update({ registrado_por: null }).eq("registrado_por", user_id),
+          supabaseAdmin.from("comunicados").update({ criado_por: null }).eq("criado_por", user_id),
+          supabaseAdmin.from("propostas").update({ criado_por: null }).eq("criado_por", user_id),
+          supabaseAdmin.from("propostas").update({ aprovado_por: null }).eq("aprovado_por", user_id),
+          supabaseAdmin.from("proposta_historico").update({ usuario_id: null }).eq("usuario_id", user_id),
+          supabaseAdmin.from("acordos").update({ responsavel_negociacao_id: null }).eq("responsavel_negociacao_id", user_id),
+          supabaseAdmin.from("acordos").update({ responsavel_acompanhamento_id: null }).eq("responsavel_acompanhamento_id", user_id),
+          supabaseAdmin.from("acordo_historico").update({ usuario_id: null }).eq("usuario_id", user_id),
+          supabaseAdmin.from("acordo_alertas").update({ destinatario_usuario_id: null }).eq("destinatario_usuario_id", user_id),
+        ];
 
-        const { error: condErr } = await supabaseAdmin
-          .from("user_condominio_access")
-          .delete()
-          .eq("user_id", user_id);
-        if (condErr) cleanupErrors.push(`user_condominio_access: ${condErr.message}`);
-
-        const { error: unidErr } = await supabaseAdmin
-          .from("user_unidade_access")
-          .delete()
-          .eq("user_id", user_id);
-        if (unidErr) cleanupErrors.push(`user_unidade_access: ${unidErr.message}`);
-
-        const { error: roleDelErr } = await supabaseAdmin
-          .from("user_roles")
-          .delete()
-          .eq("user_id", user_id);
-        if (roleDelErr) cleanupErrors.push(`user_roles: ${roleDelErr.message}`);
-
-        const { error: profileDelErr } = await supabaseAdmin
-          .from("profiles")
-          .delete()
-          .eq("user_id", user_id);
-        if (profileDelErr) cleanupErrors.push(`profiles: ${profileDelErr.message}`);
-
-        if (cleanupErrors.length > 0) {
-          console.error("Cleanup errors before auth deletion:", cleanupErrors);
+        const nullifyResults = await Promise.all(nullifyOps);
+        const nullifyErrors = nullifyResults
+          .filter(r => r.error)
+          .map(r => r.error!.message);
+        if (nullifyErrors.length > 0) {
+          console.error("SET NULL errors:", nullifyErrors);
         }
+
+        // Delete rows that belong exclusively to this user
+        await supabaseAdmin.from("user_condominio_access").delete().eq("user_id", user_id);
+        await supabaseAdmin.from("user_unidade_access").delete().eq("user_id", user_id);
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", user_id);
+        await supabaseAdmin.from("profiles").delete().eq("user_id", user_id);
 
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
         if (deleteError) throw deleteError;
