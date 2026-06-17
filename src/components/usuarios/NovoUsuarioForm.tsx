@@ -70,9 +70,7 @@ export function NovoUsuarioForm({
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [selectedCondominioAcesso, setSelectedCondominioAcesso] = useState<string>("todos");
   const [selectedMultiCondominios, setSelectedMultiCondominios] = useState<string[]>([]);
-  const [selectedUnidades, setSelectedUnidades] = useState<
-    { unidade_id: string; tipo_morador: string }[]
-  >([]);
+  const [selectedUnidade, setSelectedUnidade] = useState<string>("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -130,7 +128,9 @@ export function NovoUsuarioForm({
         role: values.role,
         condominios_ids,
         unidades_ids:
-          selectedRole === "morador" ? selectedUnidades : undefined,
+          selectedRole === "morador" && selectedUnidade
+            ? [{ unidade_id: selectedUnidade, tipo_morador: "proprietario" }]
+            : undefined,
       };
 
       const result = await onSubmit(data);
@@ -138,7 +138,7 @@ export function NovoUsuarioForm({
         form.reset();
         setSelectedCondominioAcesso("todos");
         setSelectedMultiCondominios([]);
-        setSelectedUnidades([]);
+        setSelectedUnidade("");
         onOpenChange(false);
       } else {
         setErrorMsg(result.error || "Erro desconhecido ao criar usuário.");
@@ -155,15 +155,6 @@ export function NovoUsuarioForm({
     );
   };
 
-  const toggleUnidade = (unidadeId: string, tipoMorador: string = "proprietario") => {
-    setSelectedUnidades((prev) => {
-      const exists = prev.find((u) => u.unidade_id === unidadeId);
-      if (exists) {
-        return prev.filter((u) => u.unidade_id !== unidadeId);
-      }
-      return [...prev, { unidade_id: unidadeId, tipo_morador: tipoMorador }];
-    });
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -307,34 +298,29 @@ export function NovoUsuarioForm({
 
             {selectedRole === "morador" && (
               <div className="space-y-2">
-                <FormLabel>Unidades com acesso</FormLabel>
-                <ScrollArea className="h-[150px] border rounded-md p-2">
-                  {unidades
-                    .filter((u) => selectedCondominioAcesso === "todos" || u.condominio_id === selectedCondominioAcesso)
-                    .map((unid) => {
-                    const cond = condominios.find((c) => c.id === unid.condominio_id);
-                    return (
-                      <div key={unid.id} className="flex items-center space-x-2 py-1">
-                        <Checkbox
-                          id={unid.id}
-                          checked={selectedUnidades.some((u) => u.unidade_id === unid.id)}
-                          onCheckedChange={() => toggleUnidade(unid.id)}
-                        />
-                        <label
-                          htmlFor={unid.id}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {unid.codigo} {cond ? `(${cond.nome})` : ""}
-                        </label>
-                      </div>
-                    );
-                  })}
-                  {unidades.filter((u) => selectedCondominioAcesso === "todos" || u.condominio_id === selectedCondominioAcesso).length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      Nenhuma unidade disponível
-                    </p>
-                  )}
-                </ScrollArea>
+                <FormLabel>Unidade</FormLabel>
+                <Select value={selectedUnidade} onValueChange={setSelectedUnidade}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a unidade do morador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unidades
+                      .filter((u) => selectedCondominioAcesso === "todos" || u.condominio_id === selectedCondominioAcesso)
+                      .map((unid) => {
+                        const cond = condominios.find((c) => c.id === unid.condominio_id);
+                        return (
+                          <SelectItem key={unid.id} value={unid.id}>
+                            {unid.codigo} {cond ? `(${cond.nome})` : ""}
+                          </SelectItem>
+                        );
+                      })}
+                  </SelectContent>
+                </Select>
+                {unidades.filter((u) => selectedCondominioAcesso === "todos" || u.condominio_id === selectedCondominioAcesso).length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Nenhuma unidade disponível para o condomínio selecionado.
+                  </p>
+                )}
               </div>
             )}
 
