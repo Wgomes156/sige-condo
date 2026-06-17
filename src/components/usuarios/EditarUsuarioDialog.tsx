@@ -34,7 +34,7 @@ interface EditarUsuarioDialogProps {
   onRemoverCondominio?: (userId: string, condominioId: string) => Promise<{ success: boolean }>;
 }
 
-const ROLES_MULTI_COND = ["gerente", "operador"];
+const ROLES_MULTI_COND = ["gerente", "operador", "sindico"];
 
 export function EditarUsuarioDialog({
   usuario,

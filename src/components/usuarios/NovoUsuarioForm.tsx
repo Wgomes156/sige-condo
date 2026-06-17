@@ -113,7 +113,7 @@ export function NovoUsuarioForm({
       let condominios_ids: string[] | undefined;
       if (selectedRole === "admin") {
         condominios_ids = undefined;
-      } else if (selectedRole === "gerente" || selectedRole === "operador") {
+      } else if (selectedRole === "gerente" || selectedRole === "operador" || selectedRole === "sindico") {
         condominios_ids = selectedMultiCondominios.length > 0
           ? selectedMultiCondominios
           : condominios.map((c) => c.id);
@@ -249,7 +249,7 @@ export function NovoUsuarioForm({
               )}
             />
 
-            {(selectedRole === "gerente" || selectedRole === "operador") && (
+            {(selectedRole === "gerente" || selectedRole === "operador" || selectedRole === "sindico") && (
               <div className="space-y-2">
                 <FormLabel>Condomínios de Acesso</FormLabel>
                 <p className="text-xs text-muted-foreground">
@@ -283,7 +283,7 @@ export function NovoUsuarioForm({
               </div>
             )}
 
-            {selectedRole !== "admin" && selectedRole !== "gerente" && selectedRole !== "operador" && (
+            {selectedRole !== "admin" && selectedRole !== "gerente" && selectedRole !== "operador" && selectedRole !== "sindico" && (
               <div className="space-y-2">
                 <FormLabel>Condomínio de Acesso</FormLabel>
                 <Select
