@@ -48,7 +48,7 @@ import {
 } from "@/hooks/useAnexos";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useCondominio, useUpdateCondominio, useCreateCondominio } from "@/hooks/useCondominios";
+import { useCondominio, useUpdateCondominio } from "@/hooks/useCondominios";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/utils";
 import {
@@ -198,7 +198,6 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   const uploadAnexo = useUploadAnexo();
   const { data: condominio, isLoading: loadingCondominio } = useCondominio(atendimento?.condominio_id || null);
   const updateCondominio = useUpdateCondominio();
-  const createCondominio = useCreateCondominio();
 
   // Debug: log quando historico muda
   useEffect(() => {
@@ -339,35 +338,13 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
   const onSubmit = async (data: FormData) => {
     if (!atendimento) return;
-    
-    let currentCondominioId = atendimento.condominio_id;
+
+    const currentCondominioId = atendimento.condominio_id;
 
     try {
-      // 1. Criar ou Atualizar Condomínio
-      if (!currentCondominioId && (data.condominio_endereco || data.condominio_cidade)) {
-        console.log("[onSubmit] Criando novo condomínio para vincular ao atendimento...");
-        const newCond = await createCondominio.mutateAsync({
-          nome: data.condominio_nome,
-          cnpj: data.condominio_cnpj,
-          endereco: data.condominio_endereco,
-          cidade: data.condominio_cidade,
-          uf: data.condominio_uf,
-          tipo_imovel: data.condominio_tipo_imovel,
-          quantidade_unidades: data.condominio_quantidade_unidades,
-          quantidade_blocos: data.condominio_quantidade_blocos,
-          tem_sindico: data.condominio_tem_sindico,
-          sindico_nome: data.condominio_tem_sindico ? data.condominio_sindico_nome : null,
-          sindico_telefone: data.condominio_tem_sindico ? data.condominio_sindico_telefone : null,
-          tem_administradora: data.condominio_tem_administradora,
-          nome_administradora: data.condominio_tem_administradora ? data.condominio_nome_administradora : null,
-          tem_seguranca: data.condominio_tem_seguranca,
-          tem_porteiro: data.condominio_tem_porteiro,
-          tem_monitoramento: data.condominio_tem_monitoramento,
-        });
-        currentCondominioId = newCond.id;
-        console.log("[onSubmit] Novo condomínio criado com ID:", currentCondominioId);
-      } else if (currentCondominioId) {
-        console.log("[onSubmit] Atualizando condomínio vinculado:", currentCondominioId);
+      // Atualiza dados do condomínio somente se ele já está vinculado ao atendimento.
+      // Nunca cria um novo condomínio a partir do formulário de atendimento.
+      if (currentCondominioId) {
         await updateCondominio.mutateAsync({
           id: currentCondominioId,
           nome: data.condominio_nome,
@@ -389,10 +366,8 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         });
       }
 
-      // 2. Atualizar Atendimento
-      console.log("[onSubmit] Atualizando atendimento:", atendimento.id, "ID Condomínio:", currentCondominioId);
-      await updateAtendimento.mutateAsync({ 
-        id: atendimento.id, 
+      await updateAtendimento.mutateAsync({
+        id: atendimento.id,
         data: data.data,
         hora: data.hora,
         operador_nome: data.operador_nome,
@@ -404,10 +379,9 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         cliente_telefone: data.cliente_telefone,
         cliente_email: data.cliente_email,
         condominio_nome: data.condominio_nome,
-        condominio_id: currentCondominioId
+        condominio_id: currentCondominioId,
       });
 
-      console.log("[onSubmit] Sucesso completo. Fechando dialog.");
       onOpenChange(false);
     } catch (error) {
       console.error("[onSubmit] Erro ao salvar:", error);

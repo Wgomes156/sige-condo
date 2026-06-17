@@ -150,14 +150,20 @@ export function useDeleteCondominio() {
 
   return useMutation({
     mutationFn: async ({ id, nome }: { id: string; nome: string }) => {
+      // Desvincular atendimentos antes de excluir (preserva histórico, apenas remove o FK)
+      const { error: atendErr } = await supabase
+        .from("atendimentos")
+        .update({ condominio_id: null })
+        .eq("condominio_id", id);
+
+      if (atendErr) throw atendErr;
+
       const { error } = await supabase
         .from("condominios")
         .delete()
         .eq("id", id);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       return { id, nome };
     },
