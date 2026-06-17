@@ -68,11 +68,21 @@ O sistema passou por uma auditoria completa de segurança e performance, resulta
 
 O sistema possui 5 níveis de acesso distintos:
 
-- **Administrador**: Acesso total a todos os módulos e condomínios.
-- **Síndico**: Acesso total aos condomínios que gerencia.
-- **Gerente**: Acesso administrativo aos condomínios selecionados.
-- **Operador**: Acesso operacional básico.
-- **Morador**: Acesso restrito apenas à sua unidade e condomínio.
+| Papel | Acesso a condomínios | Observação |
+|---|---|---|
+| **Administrador** | Todos — irrestrito | Sem seleção de condomínio; gerencia tudo |
+| **Síndico** | Um ou mais (seleção múltipla via checkboxes) | Acesso completo aos condomínios atribuídos |
+| **Gerente** | Um ou mais (seleção múltipla via checkboxes) | Gestão operacional dos condomínios atribuídos |
+| **Operador** | Um ou mais (seleção múltipla via checkboxes) | Acesso operacional básico aos condomínios atribuídos |
+| **Morador** | Um condomínio + uma única unidade | Acesso somente à própria unidade (somente leitura) |
+
+### Gestão de acesso multi-condomínio (Jun/2026)
+
+No **cadastro** e na **edição** de usuários:
+
+- **Síndico, Gerente e Operador**: exibem uma lista com checkboxes de todos os condomínios cadastrados, permitindo selecionar um ou mais. Se nenhum for marcado no cadastro, o acesso é concedido a todos por padrão.
+- Na **edição**, as alterações de condomínio são aplicadas em tempo real (adicionar/remover sem precisar clicar em "Salvar").
+- **Morador**: select único de condomínio para filtrar as unidades + select único de unidade. Um morador só pode ser vinculado à sua própria unidade.
 
 ## Pré-requisitos
 
