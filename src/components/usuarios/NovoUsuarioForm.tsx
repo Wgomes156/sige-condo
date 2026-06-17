@@ -69,6 +69,7 @@ export function NovoUsuarioForm({
   const [condominios, setCondominios] = useState<Condominio[]>([]);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [selectedCondominioAcesso, setSelectedCondominioAcesso] = useState<string>("todos");
+  const [selectedMultiCondominios, setSelectedMultiCondominios] = useState<string[]>([]);
   const [selectedUnidades, setSelectedUnidades] = useState<
     { unidade_id: string; tipo_morador: string }[]
   >([]);
@@ -109,17 +110,25 @@ export function NovoUsuarioForm({
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
+      let condominios_ids: string[] | undefined;
+      if (selectedRole === "admin") {
+        condominios_ids = undefined;
+      } else if (selectedRole === "gerente" || selectedRole === "operador") {
+        condominios_ids = selectedMultiCondominios.length > 0
+          ? selectedMultiCondominios
+          : condominios.map((c) => c.id);
+      } else {
+        condominios_ids = selectedCondominioAcesso === "todos"
+          ? condominios.map((c) => c.id)
+          : [selectedCondominioAcesso];
+      }
+
       const data: NovoUsuarioData = {
         nome: values.nome,
         email: values.email,
         password: values.password,
         role: values.role,
-        condominios_ids:
-          selectedRole !== "admin"
-            ? selectedCondominioAcesso === "todos"
-              ? condominios.map((c) => c.id)
-              : [selectedCondominioAcesso]
-            : undefined,
+        condominios_ids,
         unidades_ids:
           selectedRole === "morador" ? selectedUnidades : undefined,
       };
@@ -128,6 +137,7 @@ export function NovoUsuarioForm({
       if (result.success) {
         form.reset();
         setSelectedCondominioAcesso("todos");
+        setSelectedMultiCondominios([]);
         setSelectedUnidades([]);
         onOpenChange(false);
       } else {
@@ -138,6 +148,12 @@ export function NovoUsuarioForm({
     }
   };
 
+
+  const toggleCondominio = (condId: string) => {
+    setSelectedMultiCondominios((prev) =>
+      prev.includes(condId) ? prev.filter((id) => id !== condId) : [...prev, condId]
+    );
+  };
 
   const toggleUnidade = (unidadeId: string, tipoMorador: string = "proprietario") => {
     setSelectedUnidades((prev) => {
@@ -233,7 +249,41 @@ export function NovoUsuarioForm({
               )}
             />
 
-            {selectedRole !== "admin" && (
+            {(selectedRole === "gerente" || selectedRole === "operador") && (
+              <div className="space-y-2">
+                <FormLabel>Condomínios de Acesso</FormLabel>
+                <p className="text-xs text-muted-foreground">
+                  Selecione um ou mais condomínios. Se nenhum for selecionado, o acesso será a todos.
+                </p>
+                <ScrollArea className="h-[160px] border rounded-md p-2">
+                  {condominios.map((cond) => (
+                    <div key={cond.id} className="flex items-center space-x-2 py-1.5 px-1">
+                      <Checkbox
+                        id={`novo-cond-${cond.id}`}
+                        checked={selectedMultiCondominios.includes(cond.id)}
+                        onCheckedChange={() => toggleCondominio(cond.id)}
+                      />
+                      <label
+                        htmlFor={`novo-cond-${cond.id}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        {cond.nome}
+                      </label>
+                    </div>
+                  ))}
+                  {condominios.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Nenhum condomínio disponível</p>
+                  )}
+                </ScrollArea>
+                {selectedMultiCondominios.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedMultiCondominios.length} condomínio(s) selecionado(s)
+                  </p>
+                )}
+              </div>
+            )}
+
+            {selectedRole !== "admin" && selectedRole !== "gerente" && selectedRole !== "operador" && (
               <div className="space-y-2">
                 <FormLabel>Condomínio de Acesso</FormLabel>
                 <Select

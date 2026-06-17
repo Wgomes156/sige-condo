@@ -239,6 +239,8 @@ export default function Usuarios() {
         open={showEditUsuario}
         onOpenChange={setShowEditUsuario}
         onSubmit={editarUsuario}
+        onAtribuirCondominio={atribuirCondominio}
+        onRemoverCondominio={removerCondominio}
       />
 
       <AlterarSenhaDialog
