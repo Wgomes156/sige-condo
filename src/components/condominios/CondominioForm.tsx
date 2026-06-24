@@ -645,36 +645,34 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                   />
 
                   {temCnpj && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="cnpj"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Número do CNPJ</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="00.000.000/0000-00"
-                                value={formatCnpj(field.value || '')}
-                                onChange={(e) => field.onChange(unformatCnpj(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <UploadPdfField
-                        label="Arquivo CNPJ (PDF)"
-                        savedPath={(condominio as any)?.arquivo_cnpj_path}
-                        selectedFile={cnpjPdf.selectedFile}
-                        markedForDelete={cnpjPdf.markedForDelete}
-                        onFileSelect={(f) => setCnpjPdf({ selectedFile: f, markedForDelete: false })}
-                        onClearSelection={() => setCnpjPdf((s) => ({ ...s, selectedFile: null }))}
-                        onMarkForDelete={() => setCnpjPdf({ selectedFile: null, markedForDelete: true })}
-                      />
-                    </div>
+                    <FormField
+                      control={form.control}
+                      name="cnpj"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Número do CNPJ</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="00.000.000/0000-00"
+                              value={formatCnpj(field.value || '')}
+                              onChange={(e) => field.onChange(unformatCnpj(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
+
+                  <UploadPdfField
+                    label="Arquivo CNPJ (PDF)"
+                    savedPath={(condominio as any)?.arquivo_cnpj_path}
+                    selectedFile={cnpjPdf.selectedFile}
+                    markedForDelete={cnpjPdf.markedForDelete}
+                    onFileSelect={(f) => setCnpjPdf({ selectedFile: f, markedForDelete: false })}
+                    onClearSelection={() => setCnpjPdf((s) => ({ ...s, selectedFile: null }))}
+                    onMarkForDelete={() => setCnpjPdf({ selectedFile: null, markedForDelete: true })}
+                  />
                 </div>
 
                 {/* Síndico */}
@@ -1291,30 +1289,26 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                   </div>
 
                   {/* Upload Convenção */}
-                  {temConvencaoOuEstatuto && (
-                    <UploadPdfField
-                      label="Arquivo Convenção ou Estatuto (PDF)"
-                      savedPath={(condominio as any)?.arquivo_convencao_path}
-                      selectedFile={convencaoPdf.selectedFile}
-                      markedForDelete={convencaoPdf.markedForDelete}
-                      onFileSelect={(f) => setConvencaoPdf({ selectedFile: f, markedForDelete: false })}
-                      onClearSelection={() => setConvencaoPdf((s) => ({ ...s, selectedFile: null }))}
-                      onMarkForDelete={() => setConvencaoPdf({ selectedFile: null, markedForDelete: true })}
-                    />
-                  )}
+                  <UploadPdfField
+                    label="Arquivo Convenção ou Estatuto (PDF)"
+                    savedPath={(condominio as any)?.arquivo_convencao_path}
+                    selectedFile={convencaoPdf.selectedFile}
+                    markedForDelete={convencaoPdf.markedForDelete}
+                    onFileSelect={(f) => setConvencaoPdf({ selectedFile: f, markedForDelete: false })}
+                    onClearSelection={() => setConvencaoPdf((s) => ({ ...s, selectedFile: null }))}
+                    onMarkForDelete={() => setConvencaoPdf({ selectedFile: null, markedForDelete: true })}
+                  />
 
                   {/* Upload Regimento */}
-                  {temRegimentoInterno && (
-                    <UploadPdfField
-                      label="Arquivo Regimento Interno (PDF)"
-                      savedPath={(condominio as any)?.arquivo_regimento_path}
-                      selectedFile={regimentoPdf.selectedFile}
-                      markedForDelete={regimentoPdf.markedForDelete}
-                      onFileSelect={(f) => setRegimentoPdf({ selectedFile: f, markedForDelete: false })}
-                      onClearSelection={() => setRegimentoPdf((s) => ({ ...s, selectedFile: null }))}
-                      onMarkForDelete={() => setRegimentoPdf({ selectedFile: null, markedForDelete: true })}
-                    />
-                  )}
+                  <UploadPdfField
+                    label="Arquivo Regimento Interno (PDF)"
+                    savedPath={(condominio as any)?.arquivo_regimento_path}
+                    selectedFile={regimentoPdf.selectedFile}
+                    markedForDelete={regimentoPdf.markedForDelete}
+                    onFileSelect={(f) => setRegimentoPdf({ selectedFile: f, markedForDelete: false })}
+                    onClearSelection={() => setRegimentoPdf((s) => ({ ...s, selectedFile: null }))}
+                    onMarkForDelete={() => setRegimentoPdf({ selectedFile: null, markedForDelete: true })}
+                  />
 
                   <FormField
                     control={form.control}

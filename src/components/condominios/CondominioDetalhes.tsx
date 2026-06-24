@@ -1,12 +1,15 @@
 import { forwardRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Building2, MapPin, User, Phone, Mail, Shield, Eye, Users, Home, Leaf, Car, FileText } from "lucide-react";
 import { Condominio } from "@/hooks/useCondominios";
 import { AnexosSection } from "@/components/anexos/AnexosSection";
 import { DadosBancariosSection } from "@/components/condominios/DadosBancariosSection";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CondominioDetalhesProps {
   open: boolean;
@@ -19,6 +22,15 @@ export const CondominioDetalhes = forwardRef<HTMLDivElement, CondominioDetalhesP
     if (!condominio) return null;
 
   const c = condominio as any;
+
+  const handleViewFile = async (path: string) => {
+    const { data, error } = await supabase.storage.from("anexos").createSignedUrl(path, 300);
+    if (error || !data) {
+      toast.error("Não foi possível abrir o arquivo. Tente novamente.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
 
   // Amenidades ativas
   const amenidades = [
@@ -268,6 +280,79 @@ export const CondominioDetalhes = forwardRef<HTMLDivElement, CondominioDetalhesP
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {condominio.observacoes}
                 </p>
+              </div>
+            )}
+
+            {/* Documentos */}
+            {(c.arquivo_cnpj_path || c.arquivo_convencao_path || c.arquivo_regimento_path) && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Documentos
+                </h3>
+                <Separator />
+                <div className="space-y-2">
+                  {c.arquivo_cnpj_path && (
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-red-500" />
+                        <span className="text-sm font-medium">CNPJ</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+                          {c.arquivo_cnpj_path.split("/").pop()}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewFile(c.arquivo_cnpj_path)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Visualizar
+                      </Button>
+                    </div>
+                  )}
+                  {c.arquivo_convencao_path && (
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-red-500" />
+                        <span className="text-sm font-medium">Convenção / Estatuto</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+                          {c.arquivo_convencao_path.split("/").pop()}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewFile(c.arquivo_convencao_path)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Visualizar
+                      </Button>
+                    </div>
+                  )}
+                  {c.arquivo_regimento_path && (
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-red-500" />
+                        <span className="text-sm font-medium">Regimento Interno</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+                          {c.arquivo_regimento_path.split("/").pop()}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewFile(c.arquivo_regimento_path)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Visualizar
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
