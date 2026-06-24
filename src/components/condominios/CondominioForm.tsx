@@ -3,12 +3,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnexosSection } from "@/components/anexos/AnexosSection";
 import * as z from "zod";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Upload, X, Eye, Loader2, Download } from "lucide-react";
+import { UploadPdfField } from "@/components/condominios/UploadPdfField";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCnpj, validateCnpj, unformatCnpj } from "@/lib/masks";
@@ -118,75 +117,6 @@ const tiposImovel = ["Casas", "Apartamentos", "Comercial", "Misto"];
 const opcoesPorteiroTurno = ["24h", "8h", "nao"];
 const opcoesSegurancaTurno = ["24h", "8h", "nao"];
 
-const renderFileActions = (path: string, fallbackFileName: string) => {
-  return (
-    <div className="flex gap-1">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="gap-1"
-        onClick={async (e) => {
-          e.stopPropagation();
-          const btn = e.currentTarget;
-          btn.disabled = true;
-          try {
-            const { data, error } = await supabase.storage
-              .from('anexos')
-              .createSignedUrl(path, 3600);
-            if (error || !data) {
-              toast.error('Erro ao abrir arquivo');
-              return;
-            }
-            window.open(data.signedUrl, '_blank');
-          } catch {
-            toast.error('Erro ao abrir arquivo');
-          } finally {
-            btn.disabled = false;
-          }
-        }}
-      >
-        <Eye className="h-3.5 w-3.5" />
-        Visualizar
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="gap-1"
-        onClick={async (e) => {
-          e.stopPropagation();
-          const btn = e.currentTarget;
-          btn.disabled = true;
-          try {
-            const { data, error } = await supabase.storage
-              .from('anexos')
-              .download(path);
-            if (error || !data) {
-              toast.error('Erro ao baixar arquivo');
-              return;
-            }
-            const url = URL.createObjectURL(data);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = path.split('/').pop() || fallbackFileName;
-            document.body.appendChild(a);
-            a.click();
-            URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-          } catch {
-            toast.error('Erro ao baixar arquivo');
-          } finally {
-            btn.disabled = false;
-          }
-        }}
-      >
-        <Download className="h-3.5 w-3.5" />
-        Download
-      </Button>
-    </div>
-  );
-};
 
 export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
   function CondominioForm({ open, onOpenChange, condominio }, ref) {
@@ -194,18 +124,13 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
     const updateCondominio = useUpdateCondominio();
     const isEditing = !!condominio;
 
-    const [arquivoCnpj, setArquivoCnpj] = useState<File | null>(null);
-    const [arquivoRegimento, setArquivoRegimento] = useState<File | null>(null);
-    const [arquivoConvencao, setArquivoConvencao] = useState<File | null>(null);
-    const [arquivoContrato, setArquivoContrato] = useState<File | null>(null);
-    const [uploadingCnpj, setUploadingCnpj] = useState(false);
-    const [uploadingRegimento, setUploadingRegimento] = useState(false);
-    const [uploadingConvencao, setUploadingConvencao] = useState(false);
-    const [uploadingContrato, setUploadingContrato] = useState(false);
-    const cnpjInputRef = useRef<HTMLInputElement>(null);
-    const regimentoInputRef = useRef<HTMLInputElement>(null);
-    const convencaoInputRef = useRef<HTMLInputElement>(null);
-    const contratoInputRef = useRef<HTMLInputElement>(null);
+    type PdfState = { selectedFile: File | null; markedForDelete: boolean };
+    const emptyPdf: PdfState = { selectedFile: null, markedForDelete: false };
+    const [cnpjPdf, setCnpjPdf] = useState<PdfState>(emptyPdf);
+    const [convencaoPdf, setConvencaoPdf] = useState<PdfState>(emptyPdf);
+    const [regimentoPdf, setRegimentoPdf] = useState<PdfState>(emptyPdf);
+    const [contratoPdf, setContratoPdf] = useState<PdfState>(emptyPdf);
+    const [isUploading, setIsUploading] = useState(false);
 
     const form = useForm<CondominioFormData>({
       resolver: zodResolver(condominioSchema),
@@ -271,6 +196,13 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
     });
 
     useEffect(() => {
+      // Sempre limpa seleções de arquivo ao trocar de condomínio (ou abrir/fechar),
+      // para que o arquivo salvo no banco apareça corretamente na edição.
+      setCnpjPdf(emptyPdf);
+      setConvencaoPdf(emptyPdf);
+      setRegimentoPdf(emptyPdf);
+      setContratoPdf(emptyPdf);
+
       if (condominio) {
         const c = condominio as any;
         form.reset({
@@ -392,68 +324,53 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
           empresa_seguranca_nome: "",
           observacoes: "",
         });
-        setArquivoCnpj(null);
-        setArquivoRegimento(null);
-        setArquivoConvencao(null);
-        setArquivoContrato(null);
       }
     }, [condominio, form]);
 
-    const uploadFile = async (file: File, folder: string): Promise<string | null> => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-      const { error } = await supabase.storage
-        .from('anexos')
-        .upload(fileName, file);
-
-      if (error) {
-        console.error('Upload error:', error);
-        toast.error('Erro ao fazer upload do arquivo');
+    // Processa um campo PDF: faz upload do novo arquivo (com best-effort delete do antigo)
+    // ou executa deleção marcada. Lança exceção se o upload falhar (interrompe o submit).
+    const processarCampoPdf = async (
+      tipo: string,
+      estado: PdfState,
+      caminhoAtual: string | null,
+      condominioId: string,
+    ): Promise<string | null> => {
+      if (estado.selectedFile) {
+        const ext = estado.selectedFile.name.split(".").pop() ?? "pdf";
+        const novoPath = `condominios/${condominioId}/${tipo}/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
+        const { error } = await supabase.storage.from("anexos").upload(novoPath, estado.selectedFile);
+        if (error) {
+          toast.error(`Falha ao enviar o arquivo ${tipo}`);
+          throw error;
+        }
+        if (caminhoAtual) {
+          const { error: delErr } = await supabase.storage.from("anexos").remove([caminhoAtual]);
+          if (delErr) console.warn(`Falha ao remover arquivo antigo (${tipo}):`, delErr);
+        }
+        return novoPath;
+      }
+      if (estado.markedForDelete && caminhoAtual) {
+        const { error: delErr } = await supabase.storage.from("anexos").remove([caminhoAtual]);
+        if (delErr) console.warn(`Falha ao remover arquivo (${tipo}):`, delErr);
         return null;
       }
-
-      return fileName;
+      return caminhoAtual;
     };
 
     const onSubmit = async (data: CondominioFormData) => {
       try {
-        let arquivoCnpjPath = isEditing ? (condominio as any)?.arquivo_cnpj_path : null;
-        let arquivoRegimentoPath = isEditing ? (condominio as any)?.arquivo_regimento_path : null;
-        let arquivoConvencaoPath = isEditing ? (condominio as any)?.arquivo_convencao_path : null;
-        let arquivoContratoPath = isEditing ? (condominio as any)?.administradora_contrato_path : null;
+        setIsUploading(true);
+        const c = condominio as any;
+        // Para criação usa UUID temporário; para edição usa o ID real do condomínio.
+        const condominioId = condominio?.id ?? `tmp-${crypto.randomUUID()}`;
 
-        // Upload arquivo CNPJ se houver
-        if (arquivoCnpj) {
-          setUploadingCnpj(true);
-          const path = await uploadFile(arquivoCnpj, 'cnpj');
-          if (path) arquivoCnpjPath = path;
-          setUploadingCnpj(false);
-        }
-
-        // Upload arquivo regimento se houver
-        if (arquivoRegimento) {
-          setUploadingRegimento(true);
-          const path = await uploadFile(arquivoRegimento, 'documentacao');
-          if (path) arquivoRegimentoPath = path;
-          setUploadingRegimento(false);
-        }
-
-        // Upload arquivo convenção se houver
-        if (arquivoConvencao) {
-          setUploadingConvencao(true);
-          const path = await uploadFile(arquivoConvencao, 'documentacao');
-          if (path) arquivoConvencaoPath = path;
-          setUploadingConvencao(false);
-        }
-
-        // Upload arquivo contrato se houver
-        if (arquivoContrato) {
-          setUploadingContrato(true);
-          const path = await uploadFile(arquivoContrato, 'contratos');
-          if (path) arquivoContratoPath = path;
-          setUploadingContrato(false);
-        }
+        const [arquivoCnpjPath, arquivoConvencaoPath, arquivoRegimentoPath, arquivoContratoPath] =
+          await Promise.all([
+            processarCampoPdf("cnpj", cnpjPdf, c?.arquivo_cnpj_path ?? null, condominioId),
+            processarCampoPdf("convencao", convencaoPdf, c?.arquivo_convencao_path ?? null, condominioId),
+            processarCampoPdf("regimento", regimentoPdf, c?.arquivo_regimento_path ?? null, condominioId),
+            processarCampoPdf("contrato_admin", contratoPdf, c?.administradora_contrato_path ?? null, condominioId),
+          ]);
 
         const payload = {
           nome: data.nome,
@@ -523,15 +440,16 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
           await updateCondominio.mutateAsync({ id: condominio.id, ...payload } as any);
         } else {
           await createCondominio.mutateAsync(payload as any);
+          form.reset();
+          setCnpjPdf(emptyPdf);
+          setConvencaoPdf(emptyPdf);
+          setRegimentoPdf(emptyPdf);
+          setContratoPdf(emptyPdf);
         }
-        form.reset();
-        setArquivoCnpj(null);
-        setArquivoRegimento(null);
-        setArquivoConvencao(null);
-        setArquivoContrato(null);
-        onOpenChange(false);
       } catch (error) {
-        // Error is handled in the mutation
+        // Erros de upload já exibem toast; erros de mutation são tratados no hook.
+      } finally {
+        setIsUploading(false);
       }
     };
 
@@ -546,29 +464,6 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
     const vagasVisitantes = form.watch("vagas_visitantes");
     const temConvencaoOuEstatuto = form.watch("tem_convencao_ou_estatuto");
     const temRegimentoInterno = form.watch("tem_regimento_interno");
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'cnpj' | 'regimento' | 'convencao' | 'contrato') => {
-      const file = e.target.files?.[0];
-      if (file) {
-        if (file.type !== 'application/pdf') {
-          toast.error('Apenas arquivos PDF são aceitos');
-          return;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-          toast.error('Arquivo muito grande. Máximo 10MB');
-          return;
-        }
-        if (type === 'cnpj') {
-          setArquivoCnpj(file);
-        } else if (type === 'contrato') {
-          setArquivoContrato(file);
-        } else if (type === 'regimento') {
-          setArquivoRegimento(file);
-        } else if (type === 'convencao') {
-          setArquivoConvencao(file);
-        }
-      }
-    };
 
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -769,46 +664,15 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                         )}
                       />
 
-                      <div>
-                        <FormLabel>Arquivo CNPJ (PDF)</FormLabel>
-                        <div className="mt-2">
-                          {arquivoCnpj ? (
-                            <div className="flex items-center gap-2 p-2 border rounded-lg">
-                              <span className="text-sm truncate flex-1">{arquivoCnpj.name}</span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => { setArquivoCnpj(null); if (cnpjInputRef.current) cnpjInputRef.current.value = ''; }}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <label className={cn(buttonVariants({ variant: "outline" }), "w-full cursor-pointer")}>
-                                <input
-                                  ref={cnpjInputRef}
-                                  type="file"
-                                  accept=".pdf"
-                                  className="sr-only"
-                                  onChange={(e) => handleFileChange(e, 'cnpj')}
-                                />
-                                <Upload className="h-4 w-4 mr-2" />
-                                Selecionar PDF
-                              </label>
-                              {isEditing && (condominio as any)?.arquivo_cnpj_path && (
-                                <div className="flex flex-col md:flex-row items-start md:items-center gap-2 mt-2">
-                                  <p className="text-xs text-muted-foreground flex-1 truncate max-w-[200px]">
-                                    Atual: {(condominio as any).arquivo_cnpj_path.split('/').pop()}
-                                  </p>
-                                  {renderFileActions((condominio as any).arquivo_cnpj_path, 'arquivo_cnpj.pdf')}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <UploadPdfField
+                        label="Arquivo CNPJ (PDF)"
+                        savedPath={(condominio as any)?.arquivo_cnpj_path}
+                        selectedFile={cnpjPdf.selectedFile}
+                        markedForDelete={cnpjPdf.markedForDelete}
+                        onFileSelect={(f) => setCnpjPdf({ selectedFile: f, markedForDelete: false })}
+                        onClearSelection={() => setCnpjPdf((s) => ({ ...s, selectedFile: null }))}
+                        onMarkForDelete={() => setCnpjPdf({ selectedFile: null, markedForDelete: true })}
+                      />
                     </div>
                   )}
                 </div>
@@ -1370,50 +1234,15 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                       />
 
                       {temContratoAdministradora && (
-                        <div className="space-y-2">
-                          <FormLabel>Anexar Contrato (PDF)</FormLabel>
-                          <div
-                            className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors hover:border-primary/50 ${arquivoContrato ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
-                              }`}
-                          >
-                            {uploadingContrato ? (
-                              <span className="text-muted-foreground">Enviando...</span>
-                            ) : arquivoContrato ? (
-                              <div className="flex items-center justify-center gap-2">
-                                <span className="text-sm font-medium text-primary">{arquivoContrato.name}</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => { setArquivoContrato(null); if (contratoInputRef.current) contratoInputRef.current.value = ''; }}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <label className="flex flex-col items-center gap-1 text-muted-foreground cursor-pointer w-full">
-                                <input
-                                  ref={contratoInputRef}
-                                  type="file"
-                                  className="sr-only"
-                                  accept=".pdf"
-                                  onChange={(e) => handleFileChange(e, 'contrato')}
-                                  disabled={uploadingContrato}
-                                />
-                                <Upload className="h-6 w-6" />
-                                <span className="text-sm">Clique para selecionar o contrato</span>
-                              </label>
-                            )}
-                          </div>
-                          {isEditing && (condominio as any)?.administradora_contrato_path && !arquivoContrato && (
-                            <div className="flex flex-col md:flex-row items-start md:items-center gap-2 mt-2">
-                              <p className="text-xs text-muted-foreground flex-1 truncate max-w-[200px]">
-                                Atual: {(condominio as any).administradora_contrato_path.split('/').pop()}
-                              </p>
-                              {renderFileActions((condominio as any).administradora_contrato_path, 'contrato.pdf')}
-                            </div>
-                          )}
-                        </div>
+                        <UploadPdfField
+                          label="Anexar Contrato (PDF)"
+                          savedPath={(condominio as any)?.administradora_contrato_path}
+                          selectedFile={contratoPdf.selectedFile}
+                          markedForDelete={contratoPdf.markedForDelete}
+                          onFileSelect={(f) => setContratoPdf({ selectedFile: f, markedForDelete: false })}
+                          onClearSelection={() => setContratoPdf((s) => ({ ...s, selectedFile: null }))}
+                          onMarkForDelete={() => setContratoPdf({ selectedFile: null, markedForDelete: true })}
+                        />
                       )}
                     </div>
                   )}
@@ -1461,109 +1290,45 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="data_ultima_atualizacao"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Data da Última Atualização</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                  {/* Upload Convenção */}
+                  {temConvencaoOuEstatuto && (
+                    <UploadPdfField
+                      label="Arquivo Convenção ou Estatuto (PDF)"
+                      savedPath={(condominio as any)?.arquivo_convencao_path}
+                      selectedFile={convencaoPdf.selectedFile}
+                      markedForDelete={convencaoPdf.markedForDelete}
+                      onFileSelect={(f) => setConvencaoPdf({ selectedFile: f, markedForDelete: false })}
+                      onClearSelection={() => setConvencaoPdf((s) => ({ ...s, selectedFile: null }))}
+                      onMarkForDelete={() => setConvencaoPdf({ selectedFile: null, markedForDelete: true })}
                     />
+                  )}
 
-                    <div className="space-y-4">
-                      {temConvencaoOuEstatuto && (
-                        <div>
-                          <FormLabel>Arquivo Convenção ou Estatuto (PDF)</FormLabel>
-                          <div className="mt-2">
-                            {arquivoConvencao ? (
-                              <div className="flex items-center gap-2 p-2 border rounded-lg">
-                                <span className="text-sm truncate flex-1">{arquivoConvencao.name}</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => { setArquivoConvencao(null); if (convencaoInputRef.current) convencaoInputRef.current.value = ''; }}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="space-y-2">
-                                <label className={cn(buttonVariants({ variant: "outline" }), "w-full cursor-pointer")}>
-                                  <input
-                                    ref={convencaoInputRef}
-                                    type="file"
-                                    accept=".pdf"
-                                    className="sr-only"
-                                    onChange={(e) => handleFileChange(e, 'convencao')}
-                                  />
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Selecionar PDF
-                                </label>
-                                {isEditing && (condominio as any)?.arquivo_convencao_path && (
-                                  <div className="flex flex-col md:flex-row items-start md:items-center gap-2 mt-2">
-                                    <p className="text-xs text-muted-foreground flex-1 truncate max-w-[200px]">
-                                      Atual: {(condominio as any).arquivo_convencao_path.split('/').pop()}
-                                    </p>
-                                    {renderFileActions((condominio as any).arquivo_convencao_path, 'convencao.pdf')}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                  {/* Upload Regimento */}
+                  {temRegimentoInterno && (
+                    <UploadPdfField
+                      label="Arquivo Regimento Interno (PDF)"
+                      savedPath={(condominio as any)?.arquivo_regimento_path}
+                      selectedFile={regimentoPdf.selectedFile}
+                      markedForDelete={regimentoPdf.markedForDelete}
+                      onFileSelect={(f) => setRegimentoPdf({ selectedFile: f, markedForDelete: false })}
+                      onClearSelection={() => setRegimentoPdf((s) => ({ ...s, selectedFile: null }))}
+                      onMarkForDelete={() => setRegimentoPdf({ selectedFile: null, markedForDelete: true })}
+                    />
+                  )}
 
-                      {temRegimentoInterno && (
-                        <div>
-                          <FormLabel>Arquivo Regimento Interno (PDF)</FormLabel>
-                          <div className="mt-2">
-                            {arquivoRegimento ? (
-                              <div className="flex items-center gap-2 p-2 border rounded-lg">
-                                <span className="text-sm truncate flex-1">{arquivoRegimento.name}</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => { setArquivoRegimento(null); if (regimentoInputRef.current) regimentoInputRef.current.value = ''; }}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="space-y-2">
-                                <label className={cn(buttonVariants({ variant: "outline" }), "w-full cursor-pointer")}>
-                                  <input
-                                    ref={regimentoInputRef}
-                                    type="file"
-                                    accept=".pdf"
-                                    className="sr-only"
-                                    onChange={(e) => handleFileChange(e, 'regimento')}
-                                  />
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Selecionar PDF
-                                </label>
-                                {isEditing && (condominio as any)?.arquivo_regimento_path && (
-                                  <div className="flex flex-col md:flex-row items-start md:items-center gap-2 mt-2">
-                                    <p className="text-xs text-muted-foreground flex-1 truncate max-w-[200px]">
-                                      Atual: {(condominio as any).arquivo_regimento_path.split('/').pop()}
-                                    </p>
-                                    {renderFileActions((condominio as any).arquivo_regimento_path, 'regimento.pdf')}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="data_ultima_atualizacao"
+                    render={({ field }) => (
+                      <FormItem className="md:w-1/2">
+                        <FormLabel>Data da Última Atualização dos Documentos</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 {/* Acesso e Segurança */}
@@ -1790,18 +1555,16 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                     variant="outline"
                     onClick={() => onOpenChange(false)}
                   >
-                    Cancelar
+                    Sair
                   </Button>
                   <Button
                     type="submit"
                     className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                    disabled={createCondominio.isPending || updateCondominio.isPending || uploadingCnpj || uploadingRegimento || uploadingConvencao || uploadingContrato}
+                    disabled={createCondominio.isPending || updateCondominio.isPending || isUploading}
                   >
-                    {createCondominio.isPending || updateCondominio.isPending || uploadingCnpj || uploadingRegimento || uploadingConvencao || uploadingContrato
+                    {createCondominio.isPending || updateCondominio.isPending || isUploading
                       ? "Salvando..."
-                      : isEditing
-                        ? "Salvar Alterações"
-                        : "Cadastrar Condomínio"}
+                      : "Salvar"}
                   </Button>
                 </div>
               </form>

@@ -133,6 +133,11 @@ export function useUpdateCondominio() {
       return data;
     },
     onSuccess: (data) => {
+      // Atualiza o cache de todas as variantes da query de lista imediatamente,
+      // para que ao reabrir o formulário de edição os caminhos de arquivo já estejam presentes.
+      queryClient.setQueriesData<Condominio[]>({ queryKey: ["condominios"] }, (old) =>
+        old ? old.map((c) => (c.id === data.id ? data : c)) : old
+      );
       queryClient.invalidateQueries({ queryKey: ["condominios"] });
       toast.success("Condomínio atualizado com sucesso!");
       logUpdate("condominio", data.id, data.nome);
