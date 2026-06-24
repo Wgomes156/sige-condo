@@ -3,7 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnexosSection } from "@/components/anexos/AnexosSection";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -771,13 +772,6 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                       <div>
                         <FormLabel>Arquivo CNPJ (PDF)</FormLabel>
                         <div className="mt-2">
-                          <input
-                            ref={cnpjInputRef}
-                            type="file"
-                            accept=".pdf"
-                            className="hidden"
-                            onChange={(e) => handleFileChange(e, 'cnpj')}
-                          />
                           {arquivoCnpj ? (
                             <div className="flex items-center gap-2 p-2 border rounded-lg">
                               <span className="text-sm truncate flex-1">{arquivoCnpj.name}</span>
@@ -785,22 +779,24 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setArquivoCnpj(null)}
+                                onClick={() => { setArquivoCnpj(null); if (cnpjInputRef.current) cnpjInputRef.current.value = ''; }}
                               >
                                 <X className="h-4 w-4" />
                               </Button>
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => cnpjInputRef.current?.click()}
-                                className="w-full"
-                              >
+                              <label className={cn(buttonVariants({ variant: "outline" }), "w-full cursor-pointer")}>
+                                <input
+                                  ref={cnpjInputRef}
+                                  type="file"
+                                  accept=".pdf"
+                                  className="sr-only"
+                                  onChange={(e) => handleFileChange(e, 'cnpj')}
+                                />
                                 <Upload className="h-4 w-4 mr-2" />
                                 Selecionar PDF
-                              </Button>
+                              </label>
                               {isEditing && (condominio as any)?.arquivo_cnpj_path && (
                                 <div className="flex flex-col md:flex-row items-start md:items-center gap-2 mt-2">
                                   <p className="text-xs text-muted-foreground flex-1 truncate max-w-[200px]">
@@ -1377,18 +1373,9 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                         <div className="space-y-2">
                           <FormLabel>Anexar Contrato (PDF)</FormLabel>
                           <div
-                            className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors hover:border-primary/50 ${arquivoContrato ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+                            className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors hover:border-primary/50 ${arquivoContrato ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
                               }`}
-                            onClick={() => contratoInputRef.current?.click()}
                           >
-                            <input
-                              ref={contratoInputRef}
-                              type="file"
-                              className="hidden"
-                              accept=".pdf"
-                              onChange={(e) => handleFileChange(e, 'contrato')}
-                              disabled={uploadingContrato}
-                            />
                             {uploadingContrato ? (
                               <span className="text-muted-foreground">Enviando...</span>
                             ) : arquivoContrato ? (
@@ -1398,19 +1385,24 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setArquivoContrato(null);
-                                  }}
+                                  onClick={() => { setArquivoContrato(null); if (contratoInputRef.current) contratoInputRef.current.value = ''; }}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
                               </div>
                             ) : (
-                              <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                              <label className="flex flex-col items-center gap-1 text-muted-foreground cursor-pointer w-full">
+                                <input
+                                  ref={contratoInputRef}
+                                  type="file"
+                                  className="sr-only"
+                                  accept=".pdf"
+                                  onChange={(e) => handleFileChange(e, 'contrato')}
+                                  disabled={uploadingContrato}
+                                />
                                 <Upload className="h-6 w-6" />
                                 <span className="text-sm">Clique para selecionar o contrato</span>
-                              </div>
+                              </label>
                             )}
                           </div>
                           {isEditing && (condominio as any)?.administradora_contrato_path && !arquivoContrato && (
@@ -1489,13 +1481,6 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                         <div>
                           <FormLabel>Arquivo Convenção ou Estatuto (PDF)</FormLabel>
                           <div className="mt-2">
-                            <input
-                              ref={convencaoInputRef}
-                              type="file"
-                              accept=".pdf"
-                              className="hidden"
-                              onChange={(e) => handleFileChange(e, 'convencao')}
-                            />
                             {arquivoConvencao ? (
                               <div className="flex items-center gap-2 p-2 border rounded-lg">
                                 <span className="text-sm truncate flex-1">{arquivoConvencao.name}</span>
@@ -1503,22 +1488,24 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setArquivoConvencao(null)}
+                                  onClick={() => { setArquivoConvencao(null); if (convencaoInputRef.current) convencaoInputRef.current.value = ''; }}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
                               </div>
                             ) : (
                               <div className="space-y-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={() => convencaoInputRef.current?.click()}
-                                  className="w-full"
-                                >
+                                <label className={cn(buttonVariants({ variant: "outline" }), "w-full cursor-pointer")}>
+                                  <input
+                                    ref={convencaoInputRef}
+                                    type="file"
+                                    accept=".pdf"
+                                    className="sr-only"
+                                    onChange={(e) => handleFileChange(e, 'convencao')}
+                                  />
                                   <Upload className="h-4 w-4 mr-2" />
                                   Selecionar PDF
-                                </Button>
+                                </label>
                                 {isEditing && (condominio as any)?.arquivo_convencao_path && (
                                   <div className="flex flex-col md:flex-row items-start md:items-center gap-2 mt-2">
                                     <p className="text-xs text-muted-foreground flex-1 truncate max-w-[200px]">
@@ -1537,13 +1524,6 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                         <div>
                           <FormLabel>Arquivo Regimento Interno (PDF)</FormLabel>
                           <div className="mt-2">
-                            <input
-                              ref={regimentoInputRef}
-                              type="file"
-                              accept=".pdf"
-                              className="hidden"
-                              onChange={(e) => handleFileChange(e, 'regimento')}
-                            />
                             {arquivoRegimento ? (
                               <div className="flex items-center gap-2 p-2 border rounded-lg">
                                 <span className="text-sm truncate flex-1">{arquivoRegimento.name}</span>
@@ -1551,22 +1531,24 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setArquivoRegimento(null)}
+                                  onClick={() => { setArquivoRegimento(null); if (regimentoInputRef.current) regimentoInputRef.current.value = ''; }}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
                               </div>
                             ) : (
                               <div className="space-y-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={() => regimentoInputRef.current?.click()}
-                                  className="w-full"
-                                >
+                                <label className={cn(buttonVariants({ variant: "outline" }), "w-full cursor-pointer")}>
+                                  <input
+                                    ref={regimentoInputRef}
+                                    type="file"
+                                    accept=".pdf"
+                                    className="sr-only"
+                                    onChange={(e) => handleFileChange(e, 'regimento')}
+                                  />
                                   <Upload className="h-4 w-4 mr-2" />
                                   Selecionar PDF
-                                </Button>
+                                </label>
                                 {isEditing && (condominio as any)?.arquivo_regimento_path && (
                                   <div className="flex flex-col md:flex-row items-start md:items-center gap-2 mt-2">
                                     <p className="text-xs text-muted-foreground flex-1 truncate max-w-[200px]">
@@ -1813,9 +1795,9 @@ export const CondominioForm = forwardRef<HTMLDivElement, CondominioFormProps>(
                   <Button
                     type="submit"
                     className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                    disabled={createCondominio.isPending || updateCondominio.isPending || uploadingCnpj || uploadingDoc}
+                    disabled={createCondominio.isPending || updateCondominio.isPending || uploadingCnpj || uploadingRegimento || uploadingConvencao || uploadingContrato}
                   >
-                    {createCondominio.isPending || updateCondominio.isPending || uploadingCnpj || uploadingDoc
+                    {createCondominio.isPending || updateCondominio.isPending || uploadingCnpj || uploadingRegimento || uploadingConvencao || uploadingContrato
                       ? "Salvando..."
                       : isEditing
                         ? "Salvar Alterações"

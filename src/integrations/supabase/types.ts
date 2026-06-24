@@ -1087,7 +1087,9 @@ export type Database = {
           administradora_tem_contrato: boolean | null
           area_kids: boolean | null
           arquivo_cnpj_path: string | null
+          arquivo_convencao_path: string | null
           arquivo_documentacao_path: string | null
+          arquivo_regimento_path: string | null
           bairro: string | null
           cep: string | null
           cidade: string | null
@@ -1152,7 +1154,9 @@ export type Database = {
           administradora_tem_contrato?: boolean | null
           area_kids?: boolean | null
           arquivo_cnpj_path?: string | null
+          arquivo_convencao_path?: string | null
           arquivo_documentacao_path?: string | null
+          arquivo_regimento_path?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -1217,7 +1221,9 @@ export type Database = {
           administradora_tem_contrato?: boolean | null
           area_kids?: boolean | null
           arquivo_cnpj_path?: string | null
+          arquivo_convencao_path?: string | null
           arquivo_documentacao_path?: string | null
+          arquivo_regimento_path?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
