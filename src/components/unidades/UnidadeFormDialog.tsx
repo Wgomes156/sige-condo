@@ -258,7 +258,6 @@ export function UnidadeFormDialog({
       } else {
         await createUnidade.mutateAsync(payload);
       }
-      onOpenChange(false);
     } catch (error) {
       console.error("Erro ao salvar unidade:", error);
     }
@@ -1046,13 +1045,13 @@ export function UnidadeFormDialog({
 
         <div className="flex justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            Sair
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={
-              isPending || 
-              Object.values(cpfErrors).some((e) => e !== "") || 
+              isPending ||
+              Object.values(cpfErrors).some((e) => e !== "") ||
               Object.values(emailErrors).some((e) => e !== "") ||
               Object.values(telefoneErrors).some((e) => e !== "")
             }
