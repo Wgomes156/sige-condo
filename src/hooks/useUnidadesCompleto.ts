@@ -716,6 +716,9 @@ export function useDeleteVisitante() {
       queryClient.invalidateQueries({ queryKey: ["visitantes"] });
       toast.success("Visitante removido");
     },
+    onError: (error: any) => {
+      toast.error("Erro ao remover visitante: " + (error?.message || "Tente novamente"));
+    },
   });
 }
 
