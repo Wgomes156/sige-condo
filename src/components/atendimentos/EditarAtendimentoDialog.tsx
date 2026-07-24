@@ -341,10 +341,13 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
     const currentCondominioId = atendimento.condominio_id;
 
-    try {
-      // Atualiza dados do condomínio somente se ele já está vinculado ao atendimento.
-      // Nunca cria um novo condomínio a partir do formulário de atendimento.
-      if (currentCondominioId) {
+    // Atualiza dados do condomínio somente se ele já está vinculado ao atendimento.
+    // Nunca cria um novo condomínio a partir do formulário de atendimento.
+    // Isolado em seu próprio try/catch: usuários sem permissão de RLS para editar
+    // condominios (ex.: Operador dono do atendimento, mas sem o condomínio atribuído)
+    // não podem deixar essa etapa bloquear o salvamento do atendimento em si.
+    if (currentCondominioId) {
+      try {
         await updateCondominio.mutateAsync({
           id: currentCondominioId,
           nome: data.condominio_nome,
@@ -364,8 +367,12 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
           tem_porteiro: data.condominio_tem_porteiro,
           tem_monitoramento: data.condominio_tem_monitoramento,
         });
+      } catch (error) {
+        console.error("[onSubmit] Erro ao salvar dados do condomínio (atendimento será salvo mesmo assim):", error);
       }
+    }
 
+    try {
       await updateAtendimento.mutateAsync({
         id: atendimento.id,
         data: data.data,
@@ -384,7 +391,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
       onOpenChange(false);
     } catch (error) {
-      console.error("[onSubmit] Erro ao salvar:", error);
+      console.error("[onSubmit] Erro ao salvar atendimento:", error);
     }
   };
 
