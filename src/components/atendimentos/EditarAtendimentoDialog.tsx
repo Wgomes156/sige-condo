@@ -58,6 +58,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 const safeFormatDate = (v?: string | null) => {
@@ -204,6 +205,20 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
     console.log("[DEBUG] Histórico atualizado:", { count: historico?.length, loading: historicoLoading, error: historicoError, atendimentoId: atendimento?.id });
   }, [historico, historicoLoading, historicoError, atendimento?.id]);
 
+  const ACCORDION_SECTIONS = ["cliente", "condominio", "sindico", "administradora", "infraestrutura", "atendimento"];
+  const FIELD_SECTION: Record<string, string> = {
+    cliente_nome: "cliente", cliente_telefone: "cliente", cliente_email: "cliente",
+    condominio_nome: "condominio", condominio_cnpj: "condominio", condominio_endereco: "condominio",
+    condominio_cidade: "condominio", condominio_uf: "condominio", condominio_tipo_imovel: "condominio",
+    condominio_quantidade_unidades: "condominio", condominio_quantidade_blocos: "condominio",
+    condominio_tem_sindico: "sindico", condominio_sindico_nome: "sindico", condominio_sindico_telefone: "sindico",
+    condominio_tem_administradora: "administradora", condominio_nome_administradora: "administradora",
+    condominio_tem_seguranca: "infraestrutura", condominio_tem_porteiro: "infraestrutura", condominio_tem_monitoramento: "infraestrutura",
+    data: "atendimento", hora: "atendimento", operador_nome: "atendimento", canal: "atendimento",
+    status: "atendimento", motivo: "atendimento", observacoes: "atendimento",
+  };
+  const [openSections, setOpenSections] = useState<string[]>(["cliente", "atendimento"]);
+
   // Estado consolidado do formulário de histórico — atualização atômica evita
   // o bug onde clicar no lápis de um 2º/3º registro exibia dados do 1º.
   const [hForm, setHForm] = useState<{
@@ -285,6 +300,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         condominio_tem_monitoramento: condominio?.tem_monitoramento || false,
       });
       resetHForm();
+      setOpenSections(["cliente", "atendimento"]);
     }
   }, [open, atendimento, condominio, form]);
 
@@ -435,8 +451,15 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <Form {...form}>
-            <form id="edit-atendimento-form" onSubmit={form.handleSubmit(onSubmit, (err) => console.error("[Form] Erros de validação:", err))} className="space-y-6">
-              <Accordion type="multiple" defaultValue={["cliente", "atendimento"]} className="space-y-4">
+            <form id="edit-atendimento-form" onSubmit={form.handleSubmit(onSubmit, (err) => {
+              console.error("[Form] Erros de validação:", err);
+              const errorSections = Array.from(new Set(Object.keys(err).map((f) => FIELD_SECTION[f]).filter(Boolean)));
+              if (errorSections.length) {
+                setOpenSections((prev) => Array.from(new Set([...prev, ...errorSections])));
+              }
+              toast.error("Existem campos obrigatórios não preenchidos. Verifique o formulário destacado.");
+            })} className="space-y-6">
+              <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="space-y-4">
                 {/* Seção: Dados do Cliente */}
                 <AccordionItem value="cliente" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden border-b-0">
                   <AccordionTrigger className="bg-slate-50 px-4 py-2 hover:no-underline border-b border-slate-200">
@@ -683,10 +706,10 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
                   <AccordionContent className="p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField control={form.control} name="data" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Data *</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Data *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="hora" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Hora *</FormLabel><FormControl><Input type="time" {...field} /></FormControl></FormItem>
+                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Hora *</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                       )} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -694,23 +717,23 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
                         <FormItem><FormLabel className="text-[10px] font-bold uppercase">Status *</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                             <SelectContent>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                          </Select></FormItem>
+                          </Select><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="canal" render={({ field }) => (
                         <FormItem><FormLabel className="text-[10px] font-bold uppercase">Canal *</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                             <SelectContent>{CANAIS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                          </Select></FormItem>
+                          </Select><FormMessage /></FormItem>
                       )} />
                     </div>
                     <FormField control={form.control} name="motivo" render={({ field }) => (
                       <FormItem><FormLabel className="text-[10px] font-bold uppercase">Motivo *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                           <SelectContent>{MOTIVOS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                        </Select></FormItem>
+                        </Select><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="operador_nome" render={({ field }) => (
-                      <FormItem><FormLabel className="text-[10px] font-bold uppercase">Operador *</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                      <FormItem><FormLabel className="text-[10px] font-bold uppercase">Operador *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="observacoes" render={({ field }) => (
                       <FormItem><FormLabel className="text-[10px] font-bold uppercase">Observações Gerais</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl></FormItem>
