@@ -138,7 +138,9 @@ export function useUpdateCondominio() {
       queryClient.setQueriesData<Condominio[]>({ queryKey: ["condominios"] }, (old) =>
         old ? old.map((c) => (c.id === data.id ? data : c)) : old
       );
+      queryClient.setQueryData(["condominio", data.id], data);
       queryClient.invalidateQueries({ queryKey: ["condominios"] });
+      queryClient.invalidateQueries({ queryKey: ["condominio", data.id] });
       toast.success("Condomínio atualizado com sucesso!");
       logUpdate("condominio", data.id, data.nome);
     },

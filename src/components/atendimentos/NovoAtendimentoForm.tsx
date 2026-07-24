@@ -29,6 +29,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useCreateAtendimento } from "@/hooks/useAtendimentos";
+import { useCreateCondominio } from "@/hooks/useCondominios";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useUploadAnexo, formatFileSize } from "@/hooks/useAnexos";
@@ -122,6 +123,7 @@ const tiposImovel = [
 export function NovoAtendimentoForm({ open, onOpenChange }: NovoAtendimentoFormProps) {
   const isMobile = useIsMobile();
   const createAtendimento = useCreateAtendimento();
+  const createCondominio = useCreateCondominio();
   const uploadAnexo = useUploadAnexo();
   const { user } = useAuth();
   
@@ -175,6 +177,38 @@ export function NovoAtendimentoForm({ open, onOpenChange }: NovoAtendimentoFormP
 
   const onSubmit = async (data: AtendimentoFormData) => {
     try {
+      // Cria o registro em `condominios` com os dados preenchidos nas seções
+      // Condomínio/Síndico/Administradora/Infraestrutura e vincula o atendimento
+      // a ele. Isolado em try/catch: falha aqui (ex.: sem permissão de RLS)
+      // não deve impedir o registro do atendimento em si — o condomínio pode
+      // ser vinculado depois, ao editar o atendimento.
+      let condominioId: string | undefined;
+      try {
+        const novoCondominio = await createCondominio.mutateAsync({
+          nome: data.condominio_nome,
+          cnpj: data.condominio_cnpj || null,
+          endereco: data.condominio_endereco || null,
+          cidade: data.condominio_cidade || null,
+          uf: data.condominio_uf || null,
+          tipo_imovel: data.condominio_tipo_imovel || null,
+          quantidade_unidades: data.quantidade_unidades ? Number(data.quantidade_unidades) : null,
+          quantidade_blocos: data.quantidade_blocos ? Number(data.quantidade_blocos) : null,
+          tem_sindico: data.tem_sindico === "Sim",
+          sindico_nome: data.tem_sindico === "Sim" ? data.sindico_nome || null : null,
+          sindico_telefone: data.tem_sindico === "Sim" ? data.sindico_telefone || null : null,
+          sindico_email: data.tem_sindico === "Sim" ? data.sindico_email || null : null,
+          tem_administradora: data.tem_administradora === "Sim",
+          nome_administradora: data.tem_administradora === "Sim" ? data.administradora_nome || null : null,
+          administradora_telefone: data.tem_administradora === "Sim" ? data.administradora_telefone || null : null,
+          tem_seguranca: data.tem_seguranca === "Sim",
+          tem_porteiro: data.tem_porteiro || null,
+          tem_monitoramento: data.tem_monitoramento === "Sim",
+        });
+        condominioId = novoCondominio.id;
+      } catch (condError) {
+        console.error("[NovoAtendimentoForm] Erro ao criar condomínio vinculado (atendimento será salvo mesmo assim):", condError);
+      }
+
       const newAtendimento = await createAtendimento.mutateAsync({
         data: data.data,
         hora: data.hora,
@@ -187,6 +221,7 @@ export function NovoAtendimentoForm({ open, onOpenChange }: NovoAtendimentoFormP
         cliente_telefone: data.cliente_telefone,
         cliente_email: data.cliente_email || undefined,
         condominio_nome: data.condominio_nome,
+        condominio_id: condominioId,
       });
 
       // Se houver um arquivo PDF selecionado, faz o upload vinculado ao novo atendimento

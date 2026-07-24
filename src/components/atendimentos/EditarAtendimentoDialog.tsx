@@ -48,7 +48,7 @@ import {
 } from "@/hooks/useAnexos";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useCondominio, useUpdateCondominio } from "@/hooks/useCondominios";
+import { useCondominio, useUpdateCondominio, useCreateCondominio } from "@/hooks/useCondominios";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/utils";
 import {
@@ -199,6 +199,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   const uploadAnexo = useUploadAnexo();
   const { data: condominio, isLoading: loadingCondominio } = useCondominio(atendimento?.condominio_id || null);
   const updateCondominio = useUpdateCondominio();
+  const createCondominio = useCreateCondominio();
 
   // Debug: log quando historico muda
   useEffect(() => {
@@ -355,17 +356,16 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   const onSubmit = async (data: FormData) => {
     if (!atendimento) return;
 
-    const currentCondominioId = atendimento.condominio_id;
+    let condominioId = atendimento.condominio_id;
 
-    // Atualiza dados do condomínio somente se ele já está vinculado ao atendimento.
-    // Nunca cria um novo condomínio a partir do formulário de atendimento.
-    // Isolado em seu próprio try/catch: usuários sem permissão de RLS para editar
-    // condominios (ex.: Operador dono do atendimento, mas sem o condomínio atribuído)
-    // não podem deixar essa etapa bloquear o salvamento do atendimento em si.
-    if (currentCondominioId) {
-      try {
+    // Isolado em seu próprio try/catch: usuários sem permissão de RLS para
+    // criar/editar condominios não podem deixar essa etapa bloquear o
+    // salvamento do atendimento em si.
+    try {
+      if (condominioId) {
+        // Já existe um condomínio vinculado: atualiza os dados dele.
         await updateCondominio.mutateAsync({
-          id: currentCondominioId,
+          id: condominioId,
           nome: data.condominio_nome,
           cnpj: data.condominio_cnpj,
           endereco: data.condominio_endereco,
@@ -383,9 +383,35 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
           tem_porteiro: data.condominio_tem_porteiro,
           tem_monitoramento: data.condominio_tem_monitoramento,
         });
-      } catch (error) {
-        console.error("[onSubmit] Erro ao salvar dados do condomínio (atendimento será salvo mesmo assim):", error);
+      } else {
+        // Atendimento nunca teve um condomínio vinculado (ex.: criado antes
+        // desta correção, ou pelo formulário de Novo Atendimento). Sem isso,
+        // os campos da seção Condomínio/Síndico/Administradora/Infraestrutura
+        // preenchidos aqui eram lidos do formulário e depois descartados,
+        // porque não havia onde persisti-los.
+        const novoCondominio = await createCondominio.mutateAsync({
+          nome: data.condominio_nome,
+          cnpj: data.condominio_cnpj,
+          endereco: data.condominio_endereco,
+          cidade: data.condominio_cidade,
+          uf: data.condominio_uf,
+          tipo_imovel: data.condominio_tipo_imovel,
+          quantidade_unidades: data.condominio_quantidade_unidades,
+          quantidade_blocos: data.condominio_quantidade_blocos,
+          tem_sindico: data.condominio_tem_sindico,
+          sindico_nome: data.condominio_tem_sindico ? data.condominio_sindico_nome : null,
+          sindico_telefone: data.condominio_tem_sindico ? data.condominio_sindico_telefone : null,
+          tem_administradora: data.condominio_tem_administradora,
+          nome_administradora: data.condominio_tem_administradora ? data.condominio_nome_administradora : null,
+          tem_seguranca: data.condominio_tem_seguranca,
+          tem_porteiro: data.condominio_tem_porteiro,
+          tem_monitoramento: data.condominio_tem_monitoramento,
+        });
+        condominioId = novoCondominio.id;
       }
+    } catch (error) {
+      console.error("[onSubmit] Erro ao salvar dados do condomínio (atendimento será salvo mesmo assim):", error);
+      toast.error("Não foi possível salvar os dados do condomínio (endereço, síndico, etc.). O restante do atendimento foi salvo normalmente.");
     }
 
     try {
@@ -402,7 +428,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         cliente_telefone: data.cliente_telefone,
         cliente_email: data.cliente_email,
         condominio_nome: data.condominio_nome,
-        condominio_id: currentCondominioId,
+        condominio_id: condominioId,
       });
 
       onOpenChange(false);
