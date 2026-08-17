@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/select";
 import { useCreateVeiculo, useUpdateVeiculo, useDeleteVeiculo, type VeiculoUnidade, type TipoVeiculo, type ProprietarioVeiculo } from "@/hooks/useUnidadesCompleto";
 import { Plus, Save, X, Trash2, Pencil, Search } from "lucide-react";
-import { formatPlaca, validatePlaca } from "@/lib/masks";
 
 interface VeiculosInlineFormProps {
   unidadeId: string;
@@ -75,18 +74,8 @@ export function VeiculosInlineForm({ unidadeId, veiculos }: VeiculosInlineFormPr
   };
 
   const handlePlacaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPlaca(e.target.value);
-    setFormData({ ...formData, placa: formatted });
+    setFormData({ ...formData, placa: e.target.value });
     if (placaError) setPlacaError("");
-  };
-
-  const handlePlacaBlur = () => {
-    const value = formData.placa;
-    if (value && !validatePlaca(value)) {
-      setPlacaError("Placa inválida (ex: ABC-1234 ou ABC1D23)");
-    } else {
-      setPlacaError("");
-    }
   };
 
   const handleEdit = (veiculo: VeiculoUnidade) => {
@@ -104,7 +93,9 @@ export function VeiculosInlineForm({ unidadeId, veiculos }: VeiculosInlineFormPr
   };
 
   const checkPlacaDuplicada = (placa: string): boolean => {
+    if (!placa.trim()) return false;
     const placaLimpa = placa.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!placaLimpa) return false;
     return veiculos.some((v) => {
       // Se estamos editando, ignorar o veículo atual
       if (editingId && v.id === editingId) return false;
@@ -114,9 +105,7 @@ export function VeiculosInlineForm({ unidadeId, veiculos }: VeiculosInlineFormPr
   };
 
   const handleSave = async () => {
-    if (!formData.placa.trim()) return;
-
-    // Validar placa duplicada
+    // Validar placa duplicada (apenas quando preenchida)
     if (checkPlacaDuplicada(formData.placa)) {
       setPlacaError("Esta placa já está cadastrada nesta unidade");
       return;
@@ -125,7 +114,7 @@ export function VeiculosInlineForm({ unidadeId, veiculos }: VeiculosInlineFormPr
     if (editingId) {
       await updateVeiculo.mutateAsync({
         id: editingId,
-        placa: formData.placa.toUpperCase().replace(/-/g, ''),
+        placa: formData.placa,
         tipo: formData.tipo,
         marca: formData.marca || null,
         modelo: formData.modelo || null,
@@ -136,7 +125,7 @@ export function VeiculosInlineForm({ unidadeId, veiculos }: VeiculosInlineFormPr
     } else {
       await createVeiculo.mutateAsync({
         unidade_id: unidadeId,
-        placa: formData.placa.toUpperCase().replace(/-/g, ''),
+        placa: formData.placa,
         tipo: formData.tipo,
         marca: formData.marca || null,
         modelo: formData.modelo || null,
@@ -225,12 +214,11 @@ export function VeiculosInlineForm({ unidadeId, veiculos }: VeiculosInlineFormPr
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Placa *</Label>
+              <Label className="text-xs">Placa</Label>
               <Input
-                placeholder="ABC-1234 ou ABC1D23"
+                placeholder="Placa do veículo"
                 value={formData.placa}
                 onChange={handlePlacaChange}
-                onBlur={handlePlacaBlur}
                 className={placaError ? "border-destructive" : ""}
               />
               {placaError && (
@@ -312,8 +300,8 @@ export function VeiculosInlineForm({ unidadeId, veiculos }: VeiculosInlineFormPr
           <div className="flex gap-2 pt-2">
             <Button 
               size="sm" 
-              onClick={handleSave} 
-              disabled={(createVeiculo.isPending || updateVeiculo.isPending) || !formData.placa.trim() || !!placaError || !validatePlaca(formData.placa)}
+              onClick={handleSave}
+              disabled={(createVeiculo.isPending || updateVeiculo.isPending) || !!placaError}
             >
               <Save className="mr-2 h-4 w-4" />
               {editingId ? "Atualizar" : "Salvar"}
