@@ -111,6 +111,23 @@ export function useAtendimentos(filters?: AtendimentoFilters) {
   });
 }
 
+export function useAtendimento(id: string | null) {
+  return useQuery({
+    queryKey: ["atendimento", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from("atendimentos")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      return data as Atendimento;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useCreateAtendimento() {
   const queryClient = useQueryClient();
   const { logCreate } = useAuditLogger();

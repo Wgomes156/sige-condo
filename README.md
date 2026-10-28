@@ -2,7 +2,7 @@
 
 Sistema completo para administradoras de condomínios, desenvolvido com React, TypeScript, Vite e Supabase.
 
-> **Última atualização:** 08/06/2026 - Criação da conta Supabase (Wgomes156) e projeto sige_condo, migração dos dados de produção.
+> **Última atualização:** 28/10/2026 - Correção do botão "Salvar Alterações" no dialog de edição de Atendimento (dados desatualizados ao reabrir + ausência de feedback de sucesso).
 
 ## Infraestrutura Supabase
 
@@ -629,4 +629,35 @@ Antes de cada atualização, confirme:
 - [ ] Todos os arquivos antigos deletados do `public_html` antes de extrair o novo ZIP
 - [ ] Após extrair, verificar que `assets/` é uma **pasta** (não arquivos com `\` no nome)
 - [ ] Testar em aba anônima após o deploy
-<!-- deploy trigger 01/06/2026 -->
+
+---
+
+### Problema 6 — Botão "Salvar Alterações" não salvando/atualizando no Editar Atendimento (28/10/2026)
+
+**Sintoma:** Ao editar um atendimento e clicar em **"Salvar Alterações"**, nenhum feedback de sucesso era exibido. Ao reabrir o mesmo registro, os dados anteriores às edições ainda apareciam no formulário.
+
+**Causa (duas raízes combinadas):**
+
+1. **Ausência de feedback de conclusão:** O `toast.info("Salvando...")` disparava ao iniciar, mas **nenhum `toast.success`** era exibido ao terminar — o usuário não sabia se o salvamento havia concluído.
+
+2. **Dados desatualizados ao reabrir o dialog:** O componente pai (`Atendimentos.tsx`) armazenava o objeto `atendimento` como um snapshot no momento do clique no lápis. Após salvar, o React Query invalidava o cache e buscava os dados atualizados — mas o estado local do pai continuava com o objeto antigo. Ao reabrir rapidamente, o formulário era populado com os valores do snapshot, não com os dados recém-salvos no banco.
+
+3. **Ausência de invalidação do cache individual:** O hook `useUpdateAtendimento` invalidava apenas a query `["atendimentos"]` (lista), mas não havia uma query individual `["atendimento", id]` para o registro em edição.
+
+**Solução:**
+
+1. **Novo hook `useAtendimento(id)`** em `useAtendimentos.ts`: busca um único registro pelo ID, com `enabled: !!id`. O dialog usa `atendimentoFresh ?? atendimento` — sempre preferindo os dados frescos do banco.
+
+2. **`queryClient.invalidateQueries({ queryKey: ["atendimento", id] })`** chamado logo após o `updateAtendimento.mutateAsync`, garantindo que o cache individual seja descartado imediatamente.
+
+3. **`toast.loading` + `toast.dismiss` + `toast.success`** substituem o `toast.info` anterior, fornecendo feedback claro de início, progresso e conclusão do salvamento.
+
+4. **`resetKeyRef.current = null`** é explicitamente limpo no `onSubmit` antes de fechar o dialog, garantindo que na próxima abertura o `useEffect` de reset releia os dados frescos.
+
+**Arquivos modificados:**
+- `src/hooks/useAtendimentos.ts` — adicionado `useAtendimento(id)`
+- `src/components/atendimentos/EditarAtendimentoDialog.tsx` — uso do hook, invalidação individual, feedback de toast
+
+**Regra:** Ao editar um registro em um dialog que é populado via prop-snapshot, sempre busque os dados frescos diretamente do banco com um `useQuery` individual. Não confie no snapshot do estado do componente pai para refletir dados pós-salvamento.
+
+<!-- deploy trigger 28/10/2026 -->

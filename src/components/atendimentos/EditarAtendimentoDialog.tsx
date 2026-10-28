@@ -34,7 +34,7 @@ import {
   Loader2, Calendar, Building2, MapPin, Shield, Info,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUpdateAtendimento, useDeleteAtendimento, type Atendimento } from "@/hooks/useAtendimentos";
+import { useUpdateAtendimento, useDeleteAtendimento, useAtendimento, type Atendimento } from "@/hooks/useAtendimentos";
 import {
   useAtendimentoHistorico,
   useCreateAtendimentoHistorico,
@@ -192,6 +192,11 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   const queryClient = useQueryClient();
   const updateAtendimento = useUpdateAtendimento();
   const deleteAtendimento = useDeleteAtendimento();
+  // Busca sempre os dados mais recentes do registro em edição
+  const { data: atendimentoFresh } = useAtendimento(atendimento?.id ?? null);
+  // Usa os dados frescos quando disponíveis, senão usa o snapshot do prop
+  const atendimentoData = atendimentoFresh ?? atendimento;
+
   const { data: historico, isLoading: historicoLoading, error: historicoError } = useAtendimentoHistorico(atendimento?.id);
   const createHistorico = useCreateAtendimentoHistorico();
   const updateHistorico = useUpdateAtendimentoHistorico();
@@ -276,23 +281,23 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   const resetKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!open) { resetKeyRef.current = null; return; }
-    if (atendimento) {
-      const key = `${atendimento.id}:${condominio?.id ?? ""}`;
+    if (atendimentoData) {
+      const key = `${atendimentoData.id}:${condominio?.id ?? ""}`;
       if (resetKeyRef.current === key) return;
-      const primeiraVez = resetKeyRef.current === null || !resetKeyRef.current.startsWith(`${atendimento.id}:`);
+      const primeiraVez = resetKeyRef.current === null || !resetKeyRef.current.startsWith(`${atendimentoData.id}:`);
       resetKeyRef.current = key;
       form.reset({
-        data: atendimento.data || "",
-        hora: safeHora(atendimento.hora),
-        operador_nome: atendimento.operador_nome || "",
-        canal: atendimento.canal || "",
-        status: atendimento.status || "",
-        motivo: atendimento.motivo || "",
-        observacoes: atendimento.observacoes || "",
-        cliente_nome: atendimento.cliente_nome || "",
-        cliente_telefone: atendimento.cliente_telefone || "",
-        cliente_email: atendimento.cliente_email || "",
-        condominio_nome: atendimento.condominio_nome || "",
+        data: atendimentoData.data || "",
+        hora: safeHora(atendimentoData.hora),
+        operador_nome: atendimentoData.operador_nome || "",
+        canal: atendimentoData.canal || "",
+        status: atendimentoData.status || "",
+        motivo: atendimentoData.motivo || "",
+        observacoes: atendimentoData.observacoes || "",
+        cliente_nome: atendimentoData.cliente_nome || "",
+        cliente_telefone: atendimentoData.cliente_telefone || "",
+        cliente_email: atendimentoData.cliente_email || "",
+        condominio_nome: atendimentoData.condominio_nome || "",
         condominio_cnpj: condominio?.cnpj || "",
         condominio_endereco: condominio?.endereco || "",
         condominio_cidade: condominio?.cidade || "",
@@ -314,7 +319,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         setOpenSections(["cliente", "atendimento"]);
       }
     }
-  }, [open, atendimento, condominio, form]);
+  }, [open, atendimentoData, condominio, form]);
 
   if (!atendimento) {
     return (
@@ -368,6 +373,31 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
   const onSubmit = async (data: FormData) => {
     if (!atendimento) return;
+
+    try {
+      await updateAtendimento.mutateAsync({
+        id: atendimento.id,
+        data: data.data,
+        hora: data.hora,
+        operador_nome: data.operador_nome,
+        canal: data.canal,
+        status: data.status,
+        motivo: data.motivo,
+        observacoes: data.observacoes,
+        cliente_nome: data.cliente_nome,
+        cliente_telefone: data.cliente_telefone,
+        cliente_email: data.cliente_email,
+        condominio_nome: data.condominio_nome,
+        condominio_id: atendimento.condominio_id,
+      });
+      // Invalida o cache individual para garantir dados frescos na próxima abertura
+      queryClient.invalidateQueries({ queryKey: ["atendimento", atendimento.id] });
+    } catch (error) {
+      console.error("[onSubmit] Erro ao salvar atendimento:", error);
+      return;
+    }
+
+
 
     let condominioId = atendimento.condominio_id;
 
@@ -427,28 +457,35 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
       toast.error("Não foi possível salvar os dados do condomínio (endereço, síndico, etc.). O restante do atendimento foi salvo normalmente.");
     }
 
-    try {
-      await updateAtendimento.mutateAsync({
-        id: atendimento.id,
-        data: data.data,
-        hora: data.hora,
-        operador_nome: data.operador_nome,
-        canal: data.canal,
-        status: data.status,
-        motivo: data.motivo,
-        observacoes: data.observacoes,
-        cliente_nome: data.cliente_nome,
-        cliente_telefone: data.cliente_telefone,
-        cliente_email: data.cliente_email,
-        condominio_nome: data.condominio_nome,
-        condominio_id: condominioId,
-      });
-
-      onOpenChange(false);
-    } catch (error) {
-      console.error("[onSubmit] Erro ao salvar atendimento:", error);
+    if (condominioId && condominioId !== atendimento.condominio_id) {
+      try {
+        await updateAtendimento.mutateAsync({ id: atendimento.id, condominio_id: condominioId } as any);
+      } catch (error) {
+        console.error("[onSubmit] Erro ao vincular condomínio:", error);
+      }
     }
+
+    toast.success("Atendimento salvo com sucesso!");
+    // Reseta a chave para forçar releitura dos dados na próxima abertura
+    resetKeyRef.current = null;
+    onOpenChange(false);
   };
+
+  const handleSalvar = form.handleSubmit(
+    async (d) => {
+      toast.loading("Salvando alterações...", { id: "salvar-atendimento" });
+      await onSubmit(d);
+      toast.dismiss("salvar-atendimento");
+    },
+    (err) => {
+      console.error("[Form] Erros de validação:", err);
+      const errorSections = Array.from(new Set(Object.keys(err).map((f) => FIELD_SECTION[f]).filter(Boolean)));
+      if (errorSections.length) {
+        setOpenSections((prev) => Array.from(new Set([...prev, ...errorSections])));
+      }
+      toast.error("Existem campos obrigatórios não preenchidos. Verifique o formulário destacado.");
+    }
+  );
 
   const saving = createHistorico.isPending || updateHistorico.isPending || uploadAnexo.isPending;
 
@@ -490,14 +527,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
 
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <Form {...form}>
-            <form id="edit-atendimento-form" onSubmit={form.handleSubmit(onSubmit, (err) => {
-              console.error("[Form] Erros de validação:", err);
-              const errorSections = Array.from(new Set(Object.keys(err).map((f) => FIELD_SECTION[f]).filter(Boolean)));
-              if (errorSections.length) {
-                setOpenSections((prev) => Array.from(new Set([...prev, ...errorSections])));
-              }
-              toast.error("Existem campos obrigatórios não preenchidos. Verifique o formulário destacado.");
-            })} className="space-y-6">
+            <form id="edit-atendimento-form" onSubmit={handleSalvar} className="space-y-6">
               <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="space-y-4">
                 {/* Seção: Dados do Cliente */}
                 <AccordionItem value="cliente" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden border-b-0">
@@ -931,8 +961,8 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         <div className="p-6 border-t bg-white flex justify-end gap-3 shrink-0">
           <Button type="button" variant="outline" className="h-11 px-6 font-semibold" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button 
-            type="submit" 
-            form="edit-atendimento-form"
+            type="button"
+            onClick={handleSalvar}
             variant="default" 
             className="h-11 px-8 font-bold bg-orange-500 text-white hover:bg-orange-600 shadow-lg"
             disabled={updateAtendimento.isPending}
