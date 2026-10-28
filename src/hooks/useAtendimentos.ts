@@ -125,6 +125,8 @@ export function useAtendimento(id: string | null) {
       return data as Atendimento;
     },
     enabled: !!id,
+    staleTime: 30_000,          // 30s — evita refetch ao focar janela/portal
+    refetchOnWindowFocus: false, // Radix Select abre portals que disparam foco
   });
 }
 

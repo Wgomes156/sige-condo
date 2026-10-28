@@ -279,25 +279,31 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
   // (focus, invalidação após anexar/salvar histórico), que apagava o que o
   // usuário estava editando e fechava o formulário de histórico.
   const resetKeyRef = useRef<string | null>(null);
+  // Ref para ler atendimentoData sem adicioná-lo às dependências do useEffect
+  // (evita loop: Select abre portal → foco → refetch → nova ref → effect → reset)
+  const atendimentoDataRef = useRef(atendimentoData);
+  useEffect(() => { atendimentoDataRef.current = atendimentoData; });
+
   useEffect(() => {
     if (!open) { resetKeyRef.current = null; return; }
-    if (atendimentoData) {
-      const key = `${atendimentoData.id}:${condominio?.id ?? ""}`;
+    const current = atendimentoDataRef.current;
+    if (current) {
+      const key = `${current.id}:${condominio?.id ?? ""}`;
       if (resetKeyRef.current === key) return;
-      const primeiraVez = resetKeyRef.current === null || !resetKeyRef.current.startsWith(`${atendimentoData.id}:`);
+      const primeiraVez = resetKeyRef.current === null || !resetKeyRef.current.startsWith(`${current.id}:`);
       resetKeyRef.current = key;
       form.reset({
-        data: atendimentoData.data || "",
-        hora: safeHora(atendimentoData.hora),
-        operador_nome: atendimentoData.operador_nome || "",
-        canal: atendimentoData.canal || "",
-        status: atendimentoData.status || "",
-        motivo: atendimentoData.motivo || "",
-        observacoes: atendimentoData.observacoes || "",
-        cliente_nome: atendimentoData.cliente_nome || "",
-        cliente_telefone: atendimentoData.cliente_telefone || "",
-        cliente_email: atendimentoData.cliente_email || "",
-        condominio_nome: atendimentoData.condominio_nome || "",
+        data: current.data || "",
+        hora: safeHora(current.hora),
+        operador_nome: current.operador_nome || "",
+        canal: current.canal || "",
+        status: current.status || "",
+        motivo: current.motivo || "",
+        observacoes: current.observacoes || "",
+        cliente_nome: current.cliente_nome || "",
+        cliente_telefone: current.cliente_telefone || "",
+        cliente_email: current.cliente_email || "",
+        condominio_nome: current.condominio_nome || "",
         condominio_cnpj: condominio?.cnpj || "",
         condominio_endereco: condominio?.endereco || "",
         condominio_cidade: condominio?.cidade || "",
@@ -319,7 +325,9 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         setOpenSections(["cliente", "atendimento"]);
       }
     }
-  }, [open, atendimentoData, condominio, form]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, condominio?.id, form]);
+
 
   if (!atendimento) {
     return (
