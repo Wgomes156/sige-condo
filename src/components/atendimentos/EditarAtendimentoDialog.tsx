@@ -270,8 +270,17 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
     }
   });
 
+  // Só reseta quando muda o registro/condomínio carregado — não a cada refetch
+  // (focus, invalidação após anexar/salvar histórico), que apagava o que o
+  // usuário estava editando e fechava o formulário de histórico.
+  const resetKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (open && atendimento) {
+    if (!open) { resetKeyRef.current = null; return; }
+    if (atendimento) {
+      const key = `${atendimento.id}:${condominio?.id ?? ""}`;
+      if (resetKeyRef.current === key) return;
+      const primeiraVez = resetKeyRef.current === null || !resetKeyRef.current.startsWith(`${atendimento.id}:`);
+      resetKeyRef.current = key;
       form.reset({
         data: atendimento.data || "",
         hora: safeHora(atendimento.hora),
@@ -300,8 +309,10 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         condominio_tem_porteiro: condominio?.tem_porteiro || "Não",
         condominio_tem_monitoramento: condominio?.tem_monitoramento || false,
       });
-      resetHForm();
-      setOpenSections(["cliente", "atendimento"]);
+      if (primeiraVez) {
+        resetHForm();
+        setOpenSections(["cliente", "atendimento"]);
+      }
     }
   }, [open, atendimento, condominio, form]);
 
@@ -326,6 +337,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
         dets: hForm.dets,
         status: hForm.status,
       });
+      toast.error("Preencha data, hora, status e detalhes do registro para salvar.");
       return;
     }
     try {
@@ -350,6 +362,7 @@ export function EditarAtendimentoDialog({ open, onOpenChange, atendimento }: { o
       resetHForm();
     } catch (err) {
       console.error("[saveHistorico] ERRO ao salvar histórico:", err);
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar o registro do histórico.");
     }
   };
 
